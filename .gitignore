@@ -11,7 +11,6 @@ Thumbs.db
 # Archivos generados por VSCode
 .vscode/*
 !.vscode/settings.json
-!.vscode/launch.json
 !.vscode/extensions.json
 
 # Carpetas de binarios (si las usáis)
