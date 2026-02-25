@@ -1,4 +1,4 @@
-package com.taskflow.api.model;
+package com.treeco.api.model;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -198,5 +198,4 @@ public class Task {
         return true;
     }
 
-    
 }

@@ -1,9 +1,9 @@
-package com.taskflow.api.service;
+package com.treeco.api.service;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.taskflow.api.model.*;
+import com.treeco.api.model.*;
 
 public class ProjectService {
     private List<Project> projects;

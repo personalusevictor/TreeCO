@@ -1,11 +1,11 @@
-package com.taskflow.api.model;
+package com.treeco.api.model;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.mindrot.jbcrypt.BCrypt;
 
 /**
- * Clase que representa un usuario del sistema TaskFlow
+ * Clase que representa un usuario del sistema TreeCO
  */
 public class User {
     // Atributos estaticos

@@ -1,10 +1,10 @@
-package com.taskflow.api.service;
+package com.treeco.api.service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.taskflow.api.model.User;
+import com.treeco.api.model.User;
 
 public class UserService {
     private List<User> users;
