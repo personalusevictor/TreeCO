@@ -1,9 +1,8 @@
-package service;
+package com.taskflow.taskflow.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import model.Project;
-import model.Task;
+import com.taskflow.taskflow.model.*;
 
 public class ProjectService {
     private List<Project> projects;

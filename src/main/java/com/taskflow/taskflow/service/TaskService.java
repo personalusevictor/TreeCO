@@ -1,12 +1,10 @@
-package service;
+package com.taskflow.taskflow.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import model.Priority;
-import model.State;
-import model.Task;
+import com.taskflow.taskflow.model.*;
 
 public class TaskService {
     private List<Task> tasks;

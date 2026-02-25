@@ -1,10 +1,9 @@
-package service;
+package com.taskflow.taskflow.service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import model.User;
+import com.taskflow.taskflow.model.User;
 
 public class UserService {
     private List<User> users;
