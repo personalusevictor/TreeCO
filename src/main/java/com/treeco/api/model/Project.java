@@ -3,7 +3,6 @@ package com.treeco.api.model;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import jakarta.persistence.*;
 
@@ -16,7 +15,7 @@ public class Project {
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
-    private Optional<String> description;
+    private String description;
     @Column(nullable = false)
     private final LocalDate creationDate;
     @ManyToOne
@@ -108,12 +107,12 @@ public class Project {
         this.name = name.trim();
     }
 
-    public Optional<String> getDescription() {
+    public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
-        this.description = Optional.ofNullable(description);
+        this.description = description;
     }
 
     public LocalDate getCreationDate() {
@@ -130,7 +129,7 @@ public class Project {
 
     @Override
     public String toString() {
-        if (description.isEmpty()) {
+        if (description == null) {
             return String.format("id: %d%n Name: %s%n Tasks: %s%n",
                     this.id, this.name, String.join("- ", tasks.toString()));
         } else {

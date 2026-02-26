@@ -9,7 +9,7 @@ import jakarta.persistence.*;
  * Clase que representa un usuario del sistema TreeCO
  */
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +20,7 @@ public class User {
     private String email;
     @Column(nullable = false)
     private String hashPassword;
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects;
 
     /* CONSTRUCTOR */
