@@ -1,24 +1,21 @@
 spring:
-  application:
-    name: treeco
   datasource:
-    # Los valores entre ${} los leerá del sistema (Render o tu PC)
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: jdbc:postgresql://db.gmedxjtdkdewycarylqf.supabase.co:5432/postgres
+    username: postgres
+    password: "D#H4u#XxI7$gTQJB42GqSc8aM^CxxzUwZIWHfmT!ETXrbDKKca"
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      # 'update' crea las tablas automáticamente en Supabase al arrancar
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Esto es importante para Supabase/Postgres
         format_sql: true
 
+  main:
+    allow-bean-definition-overriding: true
+
 server:
-  # Puerto por defecto de Spring Boot
   port: 8080
