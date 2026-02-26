@@ -12,7 +12,7 @@ import jakarta.persistence.*;
 public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int Id;
+    private Integer id;
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
@@ -94,7 +94,7 @@ public class Project {
     }
 
     public int getId() {
-        return Id;
+        return id;
     }
 
     public String getName() {
@@ -131,11 +131,11 @@ public class Project {
     @Override
     public String toString() {
         if (description.isEmpty()) {
-            return String.format("Id: %d%n Name: %s%n Tasks: %s%n",
-                    this.Id, this.name, String.join("- ", tasks.toString()));
+            return String.format("id: %d%n Name: %s%n Tasks: %s%n",
+                    this.id, this.name, String.join("- ", tasks.toString()));
         } else {
-            return String.format("Id: %d%n Name: %s%n Description: %s%n Tasks: %s%n",
-                    this.Id, this.name, this.description, String.join("- ", tasks.toString()));
+            return String.format("id: %d%n Name: %s%n Description: %s%n Tasks: %s%n",
+                    this.id, this.name, this.description, String.join("- ", tasks.toString()));
         }
     }
 
@@ -143,7 +143,7 @@ public class Project {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + Id;
+        result = prime * result + id;
         return result;
     }
 
@@ -156,7 +156,7 @@ public class Project {
         if (getClass() != obj.getClass())
             return false;
         Project other = (Project) obj;
-        if (Id != other.Id)
+        if (id != other.id)
             return false;
         return true;
     }

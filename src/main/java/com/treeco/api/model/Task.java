@@ -10,7 +10,7 @@ public class Task {
     // ATRIBUTOS DEL OBJETO
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int id;
+    private Integer id;
     @Column(nullable = false)
     private String title;
     @Column(nullable = false)
