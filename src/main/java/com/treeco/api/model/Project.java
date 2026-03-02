@@ -1,28 +1,32 @@
-package model;
+package com.treeco.api.model;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "project")
 public class Project {
-    // Atributos estaticos
-    private static int projectCount = 0;
-
-    public static int getProjectCount() {
-        return projectCount;
-    }
-
-    // Atributos no-estaticos
-    private final int Id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer id;
+    @Column(nullable = false)
     private String name;
+    @Column(nullable = false)
     private String description;
+    @Column(nullable = false)
     private final LocalDate creationDate;
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private User user;
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 
     public Project(String name, String description) {
-        this.Id = ++projectCount;
-        this.name = name;
-        this.description = description;
+        setName(name);
+        setDescription(description);
         this.creationDate = LocalDate.now();
         this.tasks = new ArrayList<>();
 
@@ -89,7 +93,7 @@ public class Project {
     }
 
     public int getId() {
-        return Id;
+        return id;
     }
 
     public String getName() {
@@ -108,29 +112,29 @@ public class Project {
     }
 
     public void setDescription(String description) {
-        this.description = (description == null) ? null : description.trim();
+        this.description = description;
     }
 
     public LocalDate getCreationDate() {
         return creationDate;
     }
 
-    public List<Task> getTasks() {
-        return List.copyOf(this.tasks);
+    public User getUser() {
+        return user;
     }
 
-    public static void resetCounter() {
-        projectCount = 0;
+    public List<Task> getTasks() {
+        return List.copyOf(this.tasks);
     }
 
     @Override
     public String toString() {
         if (description == null) {
-            return String.format("Id: %d%n Name: %s%n Tasks: %s%n",
-                    this.Id, this.name, String.join("- ", tasks.toString()));
+            return String.format("id: %d%n Name: %s%n Tasks: %s%n",
+                    this.id, this.name, String.join("- ", tasks.toString()));
         } else {
-            return String.format("Id: %d%n Name: %s%n Description: %s%n Tasks: %s%n",
-                    this.Id, this.name, this.description, String.join("- ", tasks.toString()));
+            return String.format("id: %d%n Name: %s%n Description: %s%n Tasks: %s%n",
+                    this.id, this.name, this.description, String.join("- ", tasks.toString()));
         }
     }
 
@@ -138,7 +142,7 @@ public class Project {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + Id;
+        result = prime * result + id;
         return result;
     }
 
@@ -151,7 +155,7 @@ public class Project {
         if (getClass() != obj.getClass())
             return false;
         Project other = (Project) obj;
-        if (Id != other.Id)
+        if (id != other.id)
             return false;
         return true;
     }

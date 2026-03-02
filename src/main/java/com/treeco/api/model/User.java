@@ -1,45 +1,41 @@
-package model;
+package com.treeco.api.model;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.mindrot.jbcrypt.BCrypt;
+import jakarta.persistence.*;
 
 /**
- * Clase que representa un usuario del sistema TaskFlow
+ * Clase que representa un usuario del sistema TreeCO
  */
+@Entity
+@Table(name = "users")
 public class User {
-    // Atributos estaticos
-    private static int userCount = 0;
-
-    // Atributos no estaticos
-    private final int Id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+    @Column(nullable = false)
     private String username;
+    @Column(unique = true, nullable = false)
     private String email;
+    @Column(nullable = false)
     private String hashPassword;
+    @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects;
 
     /* CONSTRUCTOR */
 
     public User(String username, String email, String password) {
-        this.Id = ++userCount;
         setUsername(username);
         setEmail(email);
         setPassword(password);
         this.projects = new ArrayList<>();
     }
 
-    public User(User actualUser) {
-        this.Id = actualUser.Id;
-        setUsername(actualUser.username);
-        setEmail(actualUser.email);
-        this.hashPassword = actualUser.hashPassword;
-        this.projects = List.copyOf(actualUser.projects);
-    }
-
     /* GETTERS Y SETTERS */
 
-    public int getId() {
-        return Id;
+    public Integer getId() {
+        return id;
     }
 
     public String getUsername() {
@@ -138,14 +134,14 @@ public class User {
     }
 
     /**
-     * Obtiene un proyecto por su Id
+     * Obtiene un proyecto por su id
      * 
-     * @param projectId Id del proyecto
+     * @param projectid id del proyecto
      * @return El proyecto encontrado o null si no existe
      */
-    public Project getProjectById(int projectId) {
+    public Project getProjectByid(int projectid) {
         return this.projects.stream()
-                .filter(p -> p.getId() == projectId)
+                .filter(p -> p.getId() == projectid)
                 .findFirst()
                 .orElse(null);
     }
@@ -179,21 +175,17 @@ public class User {
     }
 
     /* MÉTODOS AUXILIARES */
-    public static void resetCounter() {
-        userCount = 0;
-    }
-
     @Override
     public String toString() {
-        return String.format("Id: %d | Username: %s | Email: %s | Projects: %d",
-                this.Id, this.username, this.email, this.projects.size());
+        return String.format("id: %d | Username: %s | Email: %s | Projects: %d",
+                this.id, this.username, this.email, this.projects.size());
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + Id;
+        result = prime * result + id;
         return result;
     }
 
@@ -206,7 +198,7 @@ public class User {
         if (getClass() != obj.getClass())
             return false;
         User other = (User) obj;
-        if (Id != other.Id)
+        if (id != other.id)
             return false;
         return true;
     }

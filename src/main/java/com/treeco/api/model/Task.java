@@ -1,21 +1,32 @@
-package model;
+package com.treeco.api.model;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "task")
 public class Task {
-
-    // ATRIBUTOS ESTÁTICOS
-    private static int countTask = 0;
-
     // ATRIBUTOS DEL OBJETO
-    private final int ID;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer id;
+    @Column(nullable = false)
     private String title;
+    @Column(nullable = false)
     private String description;
+    @Column(nullable = false)
     private final LocalDate dateCreation;
+    @Column(nullable = false)
     private LocalDate dateDeadline;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private Priority priority;
+    @Column(nullable = false)
     private boolean completed;
+    @ManyToOne
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     /* CONSTRUCTORES Y BUILDER */
 
@@ -59,8 +70,6 @@ public class Task {
     }
 
     private Task(Builder builder) {
-        this.ID = ++countTask;
-
         this.title = builder.title;
         this.description = builder.description;
         this.dateCreation = LocalDate.now();
@@ -73,7 +82,7 @@ public class Task {
     /* GETTERS Y SETTERS */
 
     public int getId() {
-        return ID;
+        return id;
     }
 
     public String getTitle() {
@@ -86,6 +95,10 @@ public class Task {
 
     public LocalDate getDateCreation() {
         return dateCreation;
+    }
+
+    public Project getProject() {
+        return project;
     }
 
     public void setTitle(String title) {
@@ -162,9 +175,6 @@ public class Task {
     }
 
     /* MÉTODOS AUXILIARES */
-    public static void resetCounter() {
-        countTask = 0;
-    }
 
     @Override
     public String toString() {
@@ -172,15 +182,15 @@ public class Task {
         String deadlineStr = (dateDeadline != null) ? dateDeadline.format(formatter) : "Sin fecha";
         String expired = isExpired() ? " [VENCIDA]" : "";
 
-        return String.format("[ID: %d] %s - %s - %s - Límite: %s%s",
-                ID, title, getState(), priority, deadlineStr, expired);
+        return String.format("[id: %d] %s - %s - %s - Límite: %s%s",
+                id, title, getState(), priority, deadlineStr, expired);
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ID;
+        result = prime * result + id;
         return result;
     }
 
@@ -193,10 +203,9 @@ public class Task {
         if (getClass() != obj.getClass())
             return false;
         Task other = (Task) obj;
-        if (ID != other.ID)
+        if (id != other.id)
             return false;
         return true;
     }
 
-    
 }

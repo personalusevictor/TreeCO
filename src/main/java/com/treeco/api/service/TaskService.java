@@ -1,12 +1,11 @@
-package service;
+package com.treeco.api.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import model.Priority;
-import model.State;
-import model.Task;
+
+import com.treeco.api.model.*;
 
 public class TaskService {
     private List<Task> tasks;

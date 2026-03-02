@@ -1,9 +1,9 @@
-package service;
+package com.treeco.api.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import model.Project;
-import model.Task;
+
+import com.treeco.api.model.*;
 
 public class ProjectService {
     private List<Project> projects;
