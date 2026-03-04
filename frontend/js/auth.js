@@ -210,7 +210,7 @@
 		 setLoading(btnRegSubmit, true);
 	 
 		 try {
-			 const res = await fetch(`${API_BASE}/auth/register`, {
+			 const res = await fetch(`${API_BASE}/auth/register/send-code`, {
 				 method: 'POST',
 				 headers: { 'Content-Type': 'application/json' },
 				 body: JSON.stringify({
@@ -227,13 +227,10 @@
 				 return;
 			 }
 	 
-			 // ✅ Success → switch to login with a hint
-			 showSuccessAndRedirect(btnRegSubmit, '¡Cuenta creada!', () => {
-				 setMode('login');
-				 inputLoginEmail.value = inputRegEmail.value;
-				 inputRegUsername.value = '';
-				 inputRegEmail.value    = '';
-				 inputRegPass.value     = '';
+			 // ✅ Success → abrir modal de verificación de email
+			 const emailToVerify = inputRegEmail.value.trim();
+			 showSuccessAndRedirect(btnRegSubmit, '¡Código enviado!', () => {
+				 window.openVerifyModal(emailToVerify);
 			 });
 	 
 		 } catch (err) {
@@ -282,3 +279,382 @@
 		 const mobileToggle = document.querySelector('.mobile-toggle');
 		 if (mobileToggle) mobileToggle.classList.remove('mode-register');
 	 })();
+	 
+	 /* ═══════════════════════════════════════════════
+   TREECO — Modals Logic
+   Verificación de email + Recuperación de contraseña
+   ═══════════════════════════════════════════════ */
+
+const MODAL_API = 'http://localhost:8080';
+
+// ── Helpers compartidos ──────────────────────────
+
+function modalSetLoading(btn, loading) {
+  btn.disabled = loading;
+  btn.classList.toggle('loading', loading);
+}
+
+function modalShowError(bannerEl, msg) {
+  bannerEl.querySelector('.banner-text').textContent = msg;
+  bannerEl.classList.add('visible');
+}
+
+function modalClearError(bannerEl) {
+  bannerEl.classList.remove('visible');
+  bannerEl.querySelector('.banner-text').textContent = '';
+}
+
+function openModal(backdropEl) {
+  backdropEl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(backdropEl) {
+  backdropEl.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function goToStep(panelPrefix, dotPrefix, stepNumber, totalSteps) {
+  for (let i = 1; i <= totalSteps; i++) {
+    const panel = document.getElementById(panelPrefix + i);
+    const dot   = document.getElementById(dotPrefix + i);
+    if (panel) panel.classList.toggle('active', i === stepNumber);
+    if (dot) {
+      dot.classList.toggle('active', i === stepNumber);
+      dot.classList.toggle('done',   i < stepNumber);
+    }
+  }
+}
+
+function initCodeInputs(containerEl) {
+  const digits = Array.from(containerEl.querySelectorAll('.code-digit'));
+
+  digits.forEach((input, idx) => {
+    input.addEventListener('keydown', (e) => {
+      if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    input.addEventListener('input', () => {
+      const val = input.value.replace(/\D/g, '');
+      input.value = val ? val[0] : '';
+      input.classList.toggle('filled', !!input.value);
+      if (val && idx < digits.length - 1) digits[idx + 1].focus();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        digits[idx - 1].value = '';
+        digits[idx - 1].classList.remove('filled');
+        digits[idx - 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData)
+        .getData('text').replace(/\D/g, '').slice(0, 6);
+      pasted.split('').forEach((ch, i) => {
+        if (digits[i]) { digits[i].value = ch; digits[i].classList.add('filled'); }
+      });
+      digits[Math.min(pasted.length, digits.length - 1)].focus();
+    });
+  });
+
+  containerEl.getCode = () => digits.map(function(d) { return d.value; }).join('');
+
+  containerEl.reset = () => {
+    digits.forEach(d => { d.value = ''; d.classList.remove('filled', 'error-state'); });
+    if (digits[0]) digits[0].focus();
+  };
+
+  containerEl.shakeError = () => {
+    digits.forEach(d => { d.classList.add('error-state'); d.value = ''; d.classList.remove('filled'); });
+    setTimeout(() => digits.forEach(d => d.classList.remove('error-state')), 500);
+    if (digits[0]) digits[0].focus();
+  };
+}
+
+function startResendTimer(btnEl, timerEl, seconds) {
+  btnEl.disabled = true;
+  let remaining = seconds;
+  timerEl.textContent = 'en ' + remaining + 's';
+  const interval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(interval);
+      timerEl.textContent = '';
+      btnEl.disabled = false;
+    } else {
+      timerEl.textContent = 'en ' + remaining + 's';
+    }
+  }, 1000);
+  return interval;
+}
+
+function playSuccessAnimation(ringEl, callback) {
+  ringEl.classList.add('animate');
+  setTimeout(callback, 1800);
+}
+
+// ════════════════════════════════════════════════
+// Init — esperar a que el DOM esté listo
+// ════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', function() {
+  initVerifyModal();
+  initResetModal();
+});
+
+// ════════════════════════════════════════════════
+// MODAL 1 — Verificación de email (registro)
+// ════════════════════════════════════════════════
+
+function initVerifyModal() {
+  const backdrop    = document.getElementById('modal-verify-backdrop');
+  const btnClose    = document.getElementById('modal-verify-close');
+  const errorEl     = document.getElementById('verify-error');
+  const emailLabel  = document.getElementById('verify-email-display');
+  const codeInputs  = document.getElementById('verify-code-inputs');
+  const btnConfirm  = document.getElementById('btn-verify-confirm');
+  const btnResend   = document.getElementById('btn-verify-resend');
+  const timerEl     = document.getElementById('verify-resend-timer');
+  const successRing = document.getElementById('verify-success-ring');
+
+  let currentEmail = '';
+  let resendTimer  = null;
+
+  initCodeInputs(codeInputs);
+
+  window.openVerifyModal = function(email) {
+    currentEmail = email;
+    emailLabel.textContent = email;
+    modalClearError(errorEl);
+    goToStep('vstep-', 'vdot-', 1, 2);
+    successRing.classList.remove('animate');
+    if (resendTimer) clearInterval(resendTimer);
+    openModal(backdrop);
+    setTimeout(function() {
+      codeInputs.reset();
+      resendTimer = startResendTimer(btnResend, timerEl, 30);
+    }, 320);
+  };
+
+  btnClose.addEventListener('click', () => closeModal(backdrop));
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(backdrop); });
+
+  btnConfirm.addEventListener('click', async () => {
+    const code = codeInputs.getCode();
+    if (code.length < 6) {
+      modalShowError(errorEl, 'Introduce los 6 dígitos del código');
+      codeInputs.shakeError();
+      return;
+    }
+    modalClearError(errorEl);
+    modalSetLoading(btnConfirm, true);
+    try {
+      const res  = await fetch(MODAL_API + '/auth/register/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) { modalShowError(errorEl, data.error || 'Código incorrecto'); codeInputs.shakeError(); return; }
+      goToStep('vstep-', 'vdot-', 2, 2);
+      playSuccessAnimation(successRing, () => {
+        setTimeout(() => {
+          closeModal(backdrop);
+          const loginEmailInput = document.getElementById('login-email');
+          if (loginEmailInput) loginEmailInput.value = currentEmail;
+          if (typeof setMode === 'function') setMode('login');
+          document.getElementById('register-username').value = '';
+          document.getElementById('register-email').value    = '';
+          document.getElementById('register-password').value = '';
+        }, 400);
+      });
+    } catch { modalShowError(errorEl, 'No se pudo conectar al servidor'); }
+    finally { modalSetLoading(btnConfirm, false); }
+  });
+
+  btnResend.addEventListener('click', async () => {
+    modalClearError(errorEl);
+    btnResend.disabled = true;
+    try {
+      const res  = await fetch(MODAL_API + '/auth/register/resend-code', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) { modalShowError(errorEl, data.error || 'Error al reenviar'); btnResend.disabled = false; return; }
+      codeInputs.reset();
+      if (resendTimer) clearInterval(resendTimer);
+      resendTimer = startResendTimer(btnResend, timerEl, 30);
+    } catch { modalShowError(errorEl, 'No se pudo conectar al servidor'); btnResend.disabled = false; }
+  });
+}
+
+// ════════════════════════════════════════════════
+// MODAL 2 — Recuperación de contraseña
+// ════════════════════════════════════════════════
+
+function initResetModal() {
+  const backdrop     = document.getElementById('modal-reset-backdrop');
+  const btnClose     = document.getElementById('modal-reset-close');
+  const emailInput   = document.getElementById('reset-email');
+  const btnSend      = document.getElementById('btn-reset-send');
+  const error1       = document.getElementById('reset-error-1');
+  const emailDisplay = document.getElementById('reset-email-display');
+  const codeInputs   = document.getElementById('reset-code-inputs');
+  const btnValidate  = document.getElementById('btn-reset-validate');
+  const btnResend    = document.getElementById('btn-reset-resend');
+  const timerEl      = document.getElementById('reset-resend-timer');
+  const error2       = document.getElementById('reset-error-2');
+  const newPassInput = document.getElementById('reset-new-password');
+  const btnConfirm   = document.getElementById('btn-reset-confirm');
+  const error3       = document.getElementById('reset-error-3');
+  const strengthEl   = document.getElementById('reset-strength');
+  const strengthLbl  = document.getElementById('reset-strength-label');
+  const successRing  = document.getElementById('reset-success-ring');
+
+  let currentEmail  = '';
+  let validatedCode = '';
+  let resendTimer   = null;
+
+  initCodeInputs(codeInputs);
+
+  // Enlace ¿Olvidaste tu contraseña?
+  const linkForgot = document.querySelector('.link-forgot');
+  if (linkForgot) {
+    linkForgot.addEventListener('click', (e) => {
+      e.preventDefault();
+      const prefill = document.getElementById('login-email')?.value || '';
+      openResetModal(prefill);
+    });
+  }
+
+  function openResetModal(prefillEmail) {
+    currentEmail  = '';
+    validatedCode = '';
+    emailInput.value = prefillEmail || '';
+    emailInput.classList.remove('error');
+    [error1, error2, error3].forEach(modalClearError);
+    newPassInput.value = '';
+    strengthEl.dataset.strength = '0';
+    strengthLbl.textContent = 'Introduce una contraseña';
+    goToStep('rstep-', 'rdot-', 1, 3);
+    successRing.classList.remove('animate');
+    openModal(backdrop);
+    setTimeout(() => codeInputs.reset(), 50);
+  }
+
+  btnClose.addEventListener('click', () => closeModal(backdrop));
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(backdrop); });
+
+  // Step 1 — enviar email
+  btnSend.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    if (!email || !/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+      modalShowError(error1, 'Introduce un email válido');
+      emailInput.classList.add('error');
+      return;
+    }
+    emailInput.classList.remove('error');
+    modalClearError(error1);
+    modalSetLoading(btnSend, true);
+    try {
+      await fetch(MODAL_API + '/auth/password-reset/request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      currentEmail = email;
+      emailDisplay.textContent = email;
+      if (resendTimer) clearInterval(resendTimer);
+      goToStep('rstep-', 'rdot-', 2, 3);
+      setTimeout(() => {
+        codeInputs.reset();
+        resendTimer = startResendTimer(btnResend, timerEl, 30);
+      }, 50);
+    } catch { modalShowError(error1, 'No se pudo conectar al servidor'); }
+    finally { modalSetLoading(btnSend, false); }
+  });
+
+  // Step 2 — validar código
+  btnValidate.addEventListener('click', async () => {
+    const code = codeInputs.getCode();
+    if (code.length < 6) { modalShowError(error2, 'Introduce los 6 dígitos del código'); codeInputs.shakeError(); return; }
+    modalClearError(error2);
+    modalSetLoading(btnValidate, true);
+    try {
+      const res  = await fetch(MODAL_API + '/auth/password-reset/validate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) { modalShowError(error2, data.error || 'Código incorrecto'); codeInputs.shakeError(); return; }
+      validatedCode = code;
+      goToStep('rstep-', 'rdot-', 3, 3);
+      setTimeout(() => newPassInput.focus(), 50);
+    } catch { modalShowError(error2, 'No se pudo conectar al servidor'); }
+    finally { modalSetLoading(btnValidate, false); }
+  });
+
+  // Reenviar código
+  btnResend.addEventListener('click', async () => {
+    modalClearError(error2);
+    btnResend.disabled = true;
+    try {
+      await fetch(MODAL_API + '/auth/password-reset/request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail }),
+      });
+      codeInputs.reset();
+      if (resendTimer) clearInterval(resendTimer);
+      resendTimer = startResendTimer(btnResend, timerEl, 30);
+    } catch { modalShowError(error2, 'No se pudo conectar al servidor'); btnResend.disabled = false; }
+  });
+
+  // Indicador de fortaleza
+  newPassInput.addEventListener('input', () => {
+    const val = newPassInput.value;
+    let s = 0;
+    if (val.length >= 8)           s++;
+    if (/[A-Z]/.test(val))         s++;
+    if (/[0-9]/.test(val))         s++;
+    if (/[^A-Za-z0-9]/.test(val)) s++;
+    strengthEl.dataset.strength = val.length ? s : '0';
+    strengthLbl.textContent = val.length
+      ? ['', 'Débil', 'Regular', 'Buena', 'Fuerte'][s]
+      : 'Introduce una contraseña';
+  });
+
+  // Step 3 — confirmar nueva contraseña
+  btnConfirm.addEventListener('click', async () => {
+    const newPassword = newPassInput.value;
+    if (!newPassword || newPassword.length < 8) {
+      modalShowError(error3, 'La contraseña debe tener al menos 8 caracteres');
+      newPassInput.classList.add('error');
+      return;
+    }
+    newPassInput.classList.remove('error');
+    modalClearError(error3);
+    modalSetLoading(btnConfirm, true);
+    try {
+      const res  = await fetch(MODAL_API + '/auth/password-reset/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: validatedCode, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { modalShowError(error3, data.error || 'Error al cambiar la contraseña'); return; }
+      goToStep('rstep-', 'rdot-', 4, 3);
+      playSuccessAnimation(successRing, () => {
+        setTimeout(() => {
+          closeModal(backdrop);
+          const loginEmailInput = document.getElementById('login-email');
+          if (loginEmailInput) loginEmailInput.value = currentEmail;
+          if (typeof setMode === 'function') setMode('login');
+        }, 400);
+      });
+    } catch { modalShowError(error3, 'No se pudo conectar al servidor'); }
+    finally { modalSetLoading(btnConfirm, false); }
+  });
+}
