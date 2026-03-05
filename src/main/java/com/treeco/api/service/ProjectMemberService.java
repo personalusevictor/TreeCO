@@ -2,8 +2,8 @@ package com.treeco.api.service;
 
 import com.treeco.api.model.Project;
 import com.treeco.api.model.ProjectMember;
-import com.treeco.api.model.ProjectRole;
 import com.treeco.api.model.User;
+import com.treeco.api.model.enums.ProjectRole;
 import com.treeco.api.repository.ProjectMemberRepository;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.UserRepository;
@@ -21,8 +21,8 @@ public class ProjectMemberService {
     private final UserRepository userRepository;
 
     public ProjectMemberService(ProjectMemberRepository memberRepository,
-                                ProjectRepository projectRepository,
-                                UserRepository userRepository) {
+            ProjectRepository projectRepository,
+            UserRepository userRepository) {
         this.memberRepository = memberRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
@@ -83,12 +83,13 @@ public class ProjectMemberService {
 
     /**
      * Invita a un usuario al proyecto con un rol dado.
+     * 
      * @throws IllegalArgumentException si el usuario ya es miembro
      * @throws IllegalArgumentException si se intenta añadir como OWNER
      */
     @Transactional
     public ProjectMember addMember(Integer projectId, Integer userId,
-                                   ProjectRole role, Integer invitedByUserId) {
+            ProjectRole role, Integer invitedByUserId) {
         if (role == ProjectRole.OWNER) {
             throw new IllegalArgumentException("No se puede añadir un miembro como OWNER");
         }
@@ -107,6 +108,7 @@ public class ProjectMemberService {
 
     /**
      * Cambia el rol de un miembro existente (no puede ser OWNER).
+     * 
      * @throws NoSuchElementException   si el miembro no existe
      * @throws IllegalArgumentException si se intenta asignar OWNER
      */
@@ -120,6 +122,7 @@ public class ProjectMemberService {
     /**
      * Transfiere la propiedad del proyecto a otro miembro.
      * El antiguo OWNER pasa a ser ADMIN.
+     * 
      * @throws NoSuchElementException si alguno de los usuarios no es miembro
      */
     @Transactional
@@ -140,6 +143,7 @@ public class ProjectMemberService {
 
     /**
      * Elimina (desactiva) a un miembro del proyecto.
+     * 
      * @throws IllegalArgumentException si se intenta eliminar al OWNER
      */
     @Transactional

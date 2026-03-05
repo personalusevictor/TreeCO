@@ -25,8 +25,11 @@ public class ProjectController {
         this.userRepository = userRepository;
     }
 
-    public record ProjectRequest(String name, String description, Integer userId) {}
-    public record ProjectUpdateRequest(String name, String description) {}
+    public record ProjectRequest(String name, String description, Integer userId) {
+    }
+
+    public record ProjectUpdateRequest(String name, String description) {
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllProjects() {
@@ -87,12 +90,14 @@ public class ProjectController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateProject(@PathVariable @NonNull Integer id,
-                                           @RequestBody ProjectUpdateRequest request) {
+            @RequestBody ProjectUpdateRequest request) {
         try {
             Project project = findProjectOrThrow(id);
 
-            if (request.name() != null)        project.setName(request.name());
-            if (request.description() != null) project.setDescription(request.description());
+            if (request.name() != null)
+                project.setName(request.name());
+            if (request.description() != null)
+                project.setDescription(request.description());
 
             projectRepository.save(project);
             return ResponseEntity.ok(project);
@@ -127,8 +132,7 @@ public class ProjectController {
             Project project = findProjectOrThrow(id);
             return ResponseEntity.ok(Map.of(
                     "projectId", id,
-                    "progress", project.getProgress()
-            ));
+                    "progress", project.getProgress()));
         } catch (NoSuchElementException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)

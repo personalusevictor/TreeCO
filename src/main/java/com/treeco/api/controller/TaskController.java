@@ -1,9 +1,9 @@
 package com.treeco.api.controller;
 
-import com.treeco.api.model.Priority;
 import com.treeco.api.model.Project;
-import com.treeco.api.model.State;
 import com.treeco.api.model.Task;
+import com.treeco.api.model.enums.Priority;
+import com.treeco.api.model.enums.State;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.TaskRepository;
 import org.springframework.http.HttpStatus;
@@ -28,14 +28,18 @@ public class TaskController {
         this.projectRepository = projectRepository;
     }
 
-    public record TaskRequest(String title, String description, Priority priority, LocalDate dateDeadline) {}
-    public record TaskUpdateRequest(String title, String description, Priority priority, LocalDate dateDeadline, Boolean completed) {}
+    public record TaskRequest(String title, String description, Priority priority, LocalDate dateDeadline) {
+    }
+
+    public record TaskUpdateRequest(String title, String description, Priority priority, LocalDate dateDeadline,
+            Boolean completed) {
+    }
 
     @GetMapping
     public ResponseEntity<?> getTasks(@PathVariable @NonNull Integer projectId,
-                                      @RequestParam(required = false) State state,
-                                      @RequestParam(required = false) Priority priority,
-                                      @RequestParam(required = false, defaultValue = "false") boolean orderByDate) {
+            @RequestParam(required = false) State state,
+            @RequestParam(required = false) Priority priority,
+            @RequestParam(required = false, defaultValue = "false") boolean orderByDate) {
         try {
             findProjectOrThrow(projectId);
 
@@ -66,7 +70,7 @@ public class TaskController {
 
     @GetMapping("/{taskId}")
     public ResponseEntity<?> getTask(@PathVariable @NonNull Integer projectId,
-                                     @PathVariable @NonNull Integer taskId) {
+            @PathVariable @NonNull Integer taskId) {
         try {
             findProjectOrThrow(projectId);
             return ResponseEntity.ok(findTaskOrThrow(taskId, projectId));
@@ -79,7 +83,7 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<?> createTask(@PathVariable @NonNull Integer projectId,
-                                        @RequestBody TaskRequest request) {
+            @RequestBody TaskRequest request) {
         try {
             if (request.title() == null) {
                 return ResponseEntity
@@ -115,17 +119,22 @@ public class TaskController {
 
     @PatchMapping("/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable @NonNull Integer projectId,
-                                        @PathVariable @NonNull Integer taskId,
-                                        @RequestBody TaskUpdateRequest request) {
+            @PathVariable @NonNull Integer taskId,
+            @RequestBody TaskUpdateRequest request) {
         try {
             findProjectOrThrow(projectId);
             Task task = findTaskOrThrow(taskId, projectId);
 
-            if (request.title() != null)        task.setTitle(request.title());
-            if (request.description() != null)  task.setDescription(request.description());
-            if (request.priority() != null)     task.setPriority(request.priority());
-            if (request.dateDeadline() != null) task.setDateDeadline(request.dateDeadline());
-            if (request.completed() != null)    task.setCompleted(request.completed());
+            if (request.title() != null)
+                task.setTitle(request.title());
+            if (request.description() != null)
+                task.setDescription(request.description());
+            if (request.priority() != null)
+                task.setPriority(request.priority());
+            if (request.dateDeadline() != null)
+                task.setDateDeadline(request.dateDeadline());
+            if (request.completed() != null)
+                task.setCompleted(request.completed());
 
             taskRepository.save(task);
             return ResponseEntity.ok(task);
@@ -143,7 +152,7 @@ public class TaskController {
 
     @DeleteMapping("/{taskId}")
     public ResponseEntity<?> deleteTask(@PathVariable @NonNull Integer projectId,
-                                        @PathVariable @NonNull Integer taskId) {
+            @PathVariable @NonNull Integer taskId) {
         try {
             findProjectOrThrow(projectId);
             Task task = findTaskOrThrow(taskId, projectId);

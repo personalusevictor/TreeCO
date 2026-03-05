@@ -3,24 +3,19 @@ package com.treeco.api.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.treeco.api.model.enums.ProjectRole;
+
 /**
  * Representa la pertenencia de un Usuario a un Proyecto con un rol concreto.
  * Tabla puente entre User y Project con datos extra (rol, fecha de unión).
  */
 @Entity
-@Table(
-    name = "project_member",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uq_project_user",
-            columnNames = {"project_id", "user_id"}
-        )
-    },
-    indexes = {
+@Table(name = "project_member", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_project_user", columnNames = { "project_id", "user_id" })
+}, indexes = {
         @Index(name = "idx_pm_project", columnList = "project_id"),
-        @Index(name = "idx_pm_user",    columnList = "user_id")
-    }
-)
+        @Index(name = "idx_pm_user", columnList = "user_id")
+})
 public class ProjectMember {
 
     @Id
@@ -104,11 +99,14 @@ public class ProjectMember {
 
     /**
      * Cambia el rol del miembro
-     * @throws IllegalArgumentException si se intenta asignar OWNER (solo puede haber uno)
+     * 
+     * @throws IllegalArgumentException si se intenta asignar OWNER (solo puede
+     *                                  haber uno)
      */
     public void changeRole(ProjectRole newRole) {
         if (newRole == ProjectRole.OWNER) {
-            throw new IllegalArgumentException("No se puede asignar el rol OWNER directamente. Usa transferOwnership()");
+            throw new IllegalArgumentException(
+                    "No se puede asignar el rol OWNER directamente. Usa transferOwnership()");
         }
         this.role = newRole;
     }
@@ -123,33 +121,61 @@ public class ProjectMember {
 
     /* ── GETTERS Y SETTERS ────────────────────────────────────────── */
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public void setId(Long id) { this.id = id; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Project getProject() { return project; }
+    public Project getProject() {
+        return project;
+    }
 
-    public void setProject(Project project) { this.project = project; }
+    public void setProject(Project project) {
+        this.project = project;
+    }
 
-    public User getUser() { return user; }
+    public User getUser() {
+        return user;
+    }
 
-    public void setUser(User user) { this.user = user; }
+    public void setUser(User user) {
+        this.user = user;
+    }
 
-    public ProjectRole getRole() { return role; }
+    public ProjectRole getRole() {
+        return role;
+    }
 
-    public void setRole(ProjectRole role) { this.role = role; }
+    public void setRole(ProjectRole role) {
+        this.role = role;
+    }
 
-    public LocalDateTime getJoinedAt() { return joinedAt; }
+    public LocalDateTime getJoinedAt() {
+        return joinedAt;
+    }
 
-    public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }
+    public void setJoinedAt(LocalDateTime joinedAt) {
+        this.joinedAt = joinedAt;
+    }
 
-    public User getInvitedBy() { return invitedBy; }
+    public User getInvitedBy() {
+        return invitedBy;
+    }
 
-    public void setInvitedBy(User invitedBy) { this.invitedBy = invitedBy; }
+    public void setInvitedBy(User invitedBy) {
+        this.invitedBy = invitedBy;
+    }
 
-    public boolean isActive() { return active; }
+    public boolean isActive() {
+        return active;
+    }
 
-    public void setActive(boolean active) { this.active = active; }
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     /* ── AUXILIARES ───────────────────────────────────────────────── */
 
@@ -163,8 +189,10 @@ public class ProjectMember {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ProjectMember)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof ProjectMember))
+            return false;
         ProjectMember that = (ProjectMember) o;
         return id != null && id.equals(that.id);
     }

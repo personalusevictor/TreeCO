@@ -1,11 +1,11 @@
 package com.treeco.api.service;
 
-import com.treeco.api.model.Priority;
 import com.treeco.api.model.Project;
-import com.treeco.api.model.State;
 import com.treeco.api.model.Task;
-import com.treeco.api.model.TaskType;
 import com.treeco.api.model.User;
+import com.treeco.api.model.enums.Priority;
+import com.treeco.api.model.enums.State;
+import com.treeco.api.model.enums.TaskType;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.TaskRepository;
 import com.treeco.api.repository.UserRepository;
@@ -24,8 +24,8 @@ public class TaskService {
     private final UserRepository userRepository;
 
     public TaskService(TaskRepository taskRepository,
-                       ProjectRepository projectRepository,
-                       UserRepository userRepository) {
+            ProjectRepository projectRepository,
+            UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
@@ -35,6 +35,7 @@ public class TaskService {
 
     /**
      * Devuelve todas las tareas de un proyecto.
+     * 
      * @throws NoSuchElementException si el proyecto no existe
      */
     public List<Task> getTasksByProject(Integer projectId) {
@@ -44,6 +45,7 @@ public class TaskService {
 
     /**
      * Busca una tarea por ID dentro de un proyecto.
+     * 
      * @throws NoSuchElementException si la tarea o el proyecto no existen
      */
     public Task findById(Integer taskId, Integer projectId) {
@@ -64,7 +66,8 @@ public class TaskService {
      * Filtra tareas de un proyecto por prioridad.
      */
     public List<Task> filterByPriority(Integer projectId, Priority priority) {
-        if (priority == null) throw new IllegalArgumentException("La prioridad no puede ser null");
+        if (priority == null)
+            throw new IllegalArgumentException("La prioridad no puede ser null");
         findProjectOrThrow(projectId);
         return taskRepository.findByProjectIdAndPriority(projectId, priority);
     }
@@ -73,7 +76,8 @@ public class TaskService {
      * Filtra tareas de un proyecto por estado.
      */
     public List<Task> filterByState(Integer projectId, State state) {
-        if (state == null) throw new IllegalArgumentException("El estado no puede ser null");
+        if (state == null)
+            throw new IllegalArgumentException("El estado no puede ser null");
         return getTasksByProject(projectId).stream()
                 .filter(t -> t.getState() == state)
                 .toList();
@@ -83,11 +87,12 @@ public class TaskService {
 
     /**
      * Crea una tarea básica en un proyecto.
+     * 
      * @throws NoSuchElementException si el proyecto no existe
      */
     @Transactional
     public Task createTask(Integer projectId, String title, String description,
-                           Priority priority, LocalDate dateDeadline) {
+            Priority priority, LocalDate dateDeadline) {
         Project project = findProjectOrThrow(projectId);
 
         Task task = Task.builder(title)
@@ -102,11 +107,12 @@ public class TaskService {
 
     /**
      * Crea una tarea de tipo CODE en un proyecto.
+     * 
      * @throws NoSuchElementException si el proyecto no existe
      */
     @Transactional
     public Task createCodeTask(Integer projectId, String title, String description,
-                               Priority priority, LocalDate dateDeadline) {
+            Priority priority, LocalDate dateDeadline) {
         Project project = findProjectOrThrow(projectId);
 
         Task task = Task.builder(title)
@@ -122,25 +128,32 @@ public class TaskService {
 
     /**
      * Actualiza los campos de una tarea existente.
+     * 
      * @throws NoSuchElementException si la tarea o el proyecto no existen
      */
     @Transactional
     public Task updateTask(Integer projectId, Integer taskId, String title,
-                           String description, Priority priority,
-                           LocalDate dateDeadline, Boolean completed) {
+            String description, Priority priority,
+            LocalDate dateDeadline, Boolean completed) {
         Task task = findById(taskId, projectId);
 
-        if (title != null && !title.isBlank())  task.setTitle(title);
-        if (description != null)                task.setDescription(description);
-        if (priority != null)                   task.setPriority(priority);
-        if (dateDeadline != null)               task.setDateDeadline(dateDeadline);
-        if (completed != null)                  task.setCompleted(completed);
+        if (title != null && !title.isBlank())
+            task.setTitle(title);
+        if (description != null)
+            task.setDescription(description);
+        if (priority != null)
+            task.setPriority(priority);
+        if (dateDeadline != null)
+            task.setDateDeadline(dateDeadline);
+        if (completed != null)
+            task.setCompleted(completed);
 
         return taskRepository.save(task);
     }
 
     /**
      * Marca una tarea como completada o pendiente.
+     * 
      * @throws NoSuchElementException si la tarea o el proyecto no existen
      */
     @Transactional
@@ -152,6 +165,7 @@ public class TaskService {
 
     /**
      * Asigna una tarea a un usuario.
+     * 
      * @throws NoSuchElementException si la tarea o el usuario no existen
      */
     @Transactional
@@ -166,6 +180,7 @@ public class TaskService {
 
     /**
      * Desasigna la tarea (quita el usuario asignado).
+     * 
      * @throws NoSuchElementException si la tarea no existe
      */
     @Transactional
@@ -177,6 +192,7 @@ public class TaskService {
 
     /**
      * Elimina una tarea de un proyecto.
+     * 
      * @throws NoSuchElementException si la tarea no existe
      */
     @Transactional

@@ -1,0 +1,224 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #555
+skinparam arrowColor #333
+skinparam packageBorderColor #999
+
+' ═══════════════════════════════════════
+'  ENTIDADES
+' ═══════════════════════════════════════
+
+class User {
+    -Integer id
+    -String username
+    -String email
+    -String hashPassword
+    -List<Project> projects
+    --
+    +checkPassword(password: String): boolean
+    +addProject(project: Project): boolean
+    +removeProject(project: Project): boolean
+    +getProjectByid(id: int): Project
+    +getAllTasks(): List<Task>
+    +getGlobalProgress(): double
+}
+
+class Project {
+    -Integer id
+    -String name
+    -String description
+    -LocalDate creationDate
+    -User user
+    -List<Task> tasks
+    --
+    +addTask(task: Task): boolean
+    +removeTask(task: Task): boolean
+    +getTasksByState(state: State): List<Task>
+    +getInProgressTasks(): List<Task>
+    +getCompletedTasks(): List<Task>
+    +getExpiredTasks(): List<Task>
+    +getProgress(): int
+}
+
+class ProjectMember {
+    -Long id
+    -ProjectRole role
+    -LocalDateTime joinedAt
+    -boolean active
+    --
+    +isOwner(): boolean
+    +isAdmin(): boolean
+    +isMember(): boolean
+    +changeRole(newRole: ProjectRole): void
+    +deactivate(): void
+    +activate(): void
+}
+
+class Task {
+    -Integer id
+    -String title
+    -String description
+    -LocalDate dateCreation
+    -LocalDate dateDeadline
+    -LocalDate dueDate
+    -Priority priority
+    -TaskType type
+    -boolean completed
+    --
+    +getState(): State
+    +isExpired(): boolean
+    +daysLeft(): long
+    +isCompleted(): boolean
+    +isCodeTask(): boolean
+    +isAssigned(): boolean
+    +isAssignedTo(user: User): boolean
+    +assignTo(user: User): void
+    +unassign(): void
+    +isDueSoon(days: int): boolean
+}
+
+class CodeTask {
+    -Long id
+    -String language
+    -String repositoryUrl
+    -String branchName
+    -String pullRequestUrl
+    -CodeReviewStatus reviewStatus
+    -String reviewNotes
+    -Integer estimatedHours
+    -Integer actualHours
+    -LocalDateTime reviewStartedAt
+    -LocalDateTime reviewCompletedAt
+    --
+    +startReview(): void
+    +approveReview(notes: String): void
+    +requestChanges(notes: String): void
+    +markAsMerged(): void
+    +isPendingReview(): boolean
+    +isApproved(): boolean
+    +hasPullRequest(): boolean
+    +getHoursDeviation(): Integer
+}
+
+class Notification {
+    -Long id
+    -NotificationType type
+    -String title
+    -String message
+    -boolean read
+    -LocalDateTime createdAt
+    -LocalDateTime readAt
+    -Long projectId
+    -Long taskId
+    -Long codeTaskId
+    -String actionUrl
+    -Integer priority
+    --
+    +markAsRead(): void
+    +markAsUnread(): void
+    +isRecent(): boolean
+    +isHighPriority(): boolean
+}
+
+' ═══════════════════════════════════════
+'  ENUMS
+' ═══════════════════════════════════════
+
+enum State {
+    COMPLETED
+    IN_PROGRESS
+    EXPIRED
+}
+
+enum Priority {
+    HIGH
+    MID
+    LOW
+}
+
+enum TaskType {
+    NORMAL
+    CODE
+    REVIEW
+    MEETING
+    DOCUMENTATION
+}
+
+enum ProjectRole {
+    OWNER
+    ADMIN
+    MEMBER
+}
+
+enum CodeReviewStatus {
+    PENDING
+    IN_REVIEW
+    CHANGES_REQUESTED
+    APPROVED
+    MERGED
+}
+
+enum NotificationType {
+    TASK_ASSIGNED
+    TASK_SUBMITTED
+    TASK_DUE_SOON
+    TASK_OVERDUE
+    TASK_COMPLETED
+    PROJECT_INVITE
+    PROJECT_DELETED
+    PROJECT_REMOVED
+    MEMBER_JOINED
+    MEMBER_LEFT
+    CODE_SUBMITTED
+    CODE_REVIEWED
+    CODE_APPROVED
+    CODE_REJECTED
+    COMMENT_ADDED
+    DEADLINE_CHANGED
+    PROJECT_UPDATE
+}
+
+enum EventType {
+    DEADLINE
+    MEETING
+    REMINDER
+    REVIEW
+}
+
+' ═══════════════════════════════════════
+'  RELACIONES JPA
+' ═══════════════════════════════════════
+
+' User → Projects (OneToMany)
+User "1" *-- "0..*" Project : owns >
+
+' Project → Tasks (OneToMany, cascade ALL)
+Project "1" *-- "0..*" Task : contains >
+
+' Task → assigned User (ManyToOne, nullable)
+Task "0..*" --> "0..1" User : assignedTo >
+
+' Task → CodeTask (OneToOne, cascade ALL)
+Task "1" *-- "0..1" CodeTask : has >
+
+' ProjectMember (join table User ↔ Project)
+User "1" *-- "0..*" ProjectMember : member in >
+Project "1" *-- "0..*" ProjectMember : has members >
+ProjectMember --> User : invitedBy >
+
+' Notification → User (ManyToOne)
+Notification "0..*" --> "1" User : notifies >
+
+' Enum usage
+Task ..> State : uses
+Task ..> Priority : uses
+Task ..> TaskType : uses
+Task ..> EventType : uses
+ProjectMember ..> ProjectRole : uses
+CodeTask ..> CodeReviewStatus : uses
+Notification ..> NotificationType : uses
+
+
+@enduml

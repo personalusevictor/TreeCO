@@ -1,9 +1,9 @@
 package com.treeco.api.service;
 
 import com.treeco.api.model.Project;
-import com.treeco.api.model.State;
 import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
+import com.treeco.api.model.enums.State;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -34,6 +34,7 @@ public class ProjectService {
 
     /**
      * Busca un proyecto por ID.
+     * 
      * @throws NoSuchElementException si no existe
      */
     public Project findById(Integer id) {
@@ -43,6 +44,7 @@ public class ProjectService {
 
     /**
      * Devuelve todos los proyectos de un usuario.
+     * 
      * @throws NoSuchElementException si el usuario no existe
      */
     public List<Project> getProjectsByUser(Integer userId) {
@@ -53,7 +55,8 @@ public class ProjectService {
     }
 
     /**
-     * Devuelve el porcentaje de progreso de un proyecto (tareas completadas / total).
+     * Devuelve el porcentaje de progreso de un proyecto (tareas completadas /
+     * total).
      */
     public int getProgress(Integer projectId) {
         return findById(projectId).getProgress();
@@ -70,6 +73,7 @@ public class ProjectService {
 
     /**
      * Crea un nuevo proyecto asociado a un usuario.
+     * 
      * @throws NoSuchElementException si el usuario no existe
      */
     @Transactional
@@ -84,6 +88,7 @@ public class ProjectService {
 
     /**
      * Actualiza nombre y/o descripción de un proyecto.
+     * 
      * @throws NoSuchElementException si el proyecto no existe
      */
     @Transactional
@@ -102,6 +107,7 @@ public class ProjectService {
 
     /**
      * Elimina un proyecto por ID.
+     * 
      * @throws NoSuchElementException si no existe
      */
     @Transactional

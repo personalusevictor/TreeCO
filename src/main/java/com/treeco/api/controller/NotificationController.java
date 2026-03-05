@@ -1,7 +1,7 @@
 package com.treeco.api.controller;
 
 import com.treeco.api.model.Notification;
-import com.treeco.api.model.NotificationType;
+import com.treeco.api.model.enums.NotificationType;
 import com.treeco.api.service.NotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +15,7 @@ import java.util.NoSuchElementException;
 @RequestMapping("/api/users/{userId}/notifications")
 public class NotificationController {
 
+    private static final String ERROR = "error";
     private final NotificationService notificationService;
 
     public NotificationController(NotificationService notificationService) {
@@ -26,8 +27,8 @@ public class NotificationController {
     // GET /api/users/{userId}/notifications?type=TASK_ASSIGNED
     @GetMapping
     public ResponseEntity<?> getNotifications(@PathVariable Integer userId,
-                                              @RequestParam(required = false) Boolean unread,
-                                              @RequestParam(required = false) NotificationType type) {
+            @RequestParam(required = false) Boolean unread,
+            @RequestParam(required = false) NotificationType type) {
         try {
             List<Notification> notifications;
 
@@ -42,7 +43,7 @@ public class NotificationController {
             return ResponseEntity.ok(notifications);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -52,37 +53,36 @@ public class NotificationController {
         try {
             return ResponseEntity.ok(Map.of(
                     "userId", userId,
-                    "unread", notificationService.countUnread(userId)
-            ));
+                    "unread", notificationService.countUnread(userId)));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
     // PATCH /api/users/{userId}/notifications/{id}/read
     @PatchMapping("/{id}/read")
     public ResponseEntity<?> markAsRead(@PathVariable Integer userId,
-                                        @PathVariable Long id) {
+            @PathVariable Long id) {
         try {
             Notification notification = notificationService.markAsRead(userId, id);
             return ResponseEntity.ok(notification);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
     // PATCH /api/users/{userId}/notifications/{id}/unread
     @PatchMapping("/{id}/unread")
     public ResponseEntity<?> markAsUnread(@PathVariable Integer userId,
-                                          @PathVariable Long id) {
+            @PathVariable Long id) {
         try {
             Notification notification = notificationService.markAsUnread(userId, id);
             return ResponseEntity.ok(notification);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -93,24 +93,23 @@ public class NotificationController {
             int updated = notificationService.markAllAsRead(userId);
             return ResponseEntity.ok(Map.of(
                     "message", "Notificaciones marcadas como leídas",
-                    "updated", updated
-            ));
+                    "updated", updated));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
     // DELETE /api/users/{userId}/notifications/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Integer userId,
-                                    @PathVariable Long id) {
+            @PathVariable Long id) {
         try {
             notificationService.delete(userId, id);
             return ResponseEntity.ok(Map.of("message", "Notificación eliminada correctamente"));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -121,11 +120,10 @@ public class NotificationController {
             int deleted = notificationService.deleteAllRead(userId);
             return ResponseEntity.ok(Map.of(
                     "message", "Notificaciones leídas eliminadas",
-                    "deleted", deleted
-            ));
+                    "deleted", deleted));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(ERROR, e.getMessage()));
         }
     }
 }

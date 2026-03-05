@@ -1,4 +1,4 @@
-package com.treeco.api.model;
+package com.treeco.api.model.enums;
 
 public enum TaskType {
     NORMAL,         // Tarea estándar

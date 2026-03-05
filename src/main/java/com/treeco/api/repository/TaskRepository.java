@@ -1,7 +1,8 @@
 package com.treeco.api.repository;
 
 import com.treeco.api.model.Task;
-import com.treeco.api.model.Priority;
+import com.treeco.api.model.enums.Priority;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
