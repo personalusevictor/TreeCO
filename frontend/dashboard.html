@@ -1,66 +1,86 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TreeCO - Principal</title>
-  <link rel="icon" type="image/png" href="assets/img/favicon/TreeCO.png" />
-  <link rel="stylesheet" href="css/root.css" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: var(--font-sans);
-      background-color: var(--color-bg-deep);
-      color: var(--color-text-primary);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2rem;
-    }
-    h1 { font-size: var(--text-4xl); font-weight: var(--weight-bold); letter-spacing: -0.03em; }
-    h1 span { color: var(--color-text-accent); }
-		h2 {
-			font-size: var(--text-xl);
-			font-weight: var(--weight-semi);
-		}
 
-    .btn-logout {
-      font-family: var(--font-sans);
-      font-size: var(--text-sm);
-      font-weight: var(--weight-semi);
-      color: rgba(255,255,255,0.7);
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 0.6rem 1.5rem;
-      cursor: pointer;
-      transition: background 200ms, border-color 200ms, color 200ms;
-    }
-    .btn-logout:hover {
-      background: rgba(255, 80, 80, 0.12);
-      border-color: rgba(255, 80, 80, 0.35);
-      color: rgba(255, 80, 80, 0.9);
-    }
-  </style>
-  <script>
-    (function () {
-      if (!sessionStorage.getItem('treeco_user')) {
-        window.location.replace('index.html');
-      }
-    })();
-  </script>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TreeCO - Principal</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon/TreeCO.png" />
+    <link rel="stylesheet" href="css/root.css" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-bg-deep);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        h1 {
+            font-size: var(--text-4xl);
+            font-weight: var(--weight-bold);
+            letter-spacing: -0.03em;
+        }
+
+        h1 span {
+            color: var(--color-text-accent);
+        }
+
+        h2 {
+            font-size: var(--text-xl);
+            font-weight: var(--weight-semi);
+        }
+
+        .btn-logout {
+            font-family: var(--font-sans);
+            font-size: var(--text-sm);
+            font-weight: var(--weight-semi);
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 0.6rem 1.5rem;
+            cursor: pointer;
+            transition: background 200ms, border-color 200ms, color 200ms;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 80, 80, 0.12);
+            border-color: rgba(255, 80, 80, 0.35);
+            color: rgba(255, 80, 80, 0.9);
+        }
+    </style>
+    <script>
+        (function () {
+            if (!sessionStorage.getItem('treeco_user')) {
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 </head>
+
 <body>
-  <h1>Tree<span>CO</span> principal</h1>
-	<h2>Continuara...</h2>
-  <button class="btn-logout" onclick="logout()">Cerrar sesion</button>
-  <script>
-    function logout() {
-      sessionStorage.removeItem('treeco_user');
-      window.location.replace('index.html');
-    }
-  </script>
+    <h1>Tree<span>CO</span> principal</h1>
+    <h2>Continuara...</h2>
+    <button class="btn-logout" onclick="logout()">Cerrar sesion</button>
+    <script>
+        function logout() {
+            sessionStorage.removeItem('treeco_user');
+            window.location.replace('index.html');
+        }
+    </script>
 </body>
+
 </html>
