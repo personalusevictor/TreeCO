@@ -13,15 +13,18 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/root.css" />
     <link rel="stylesheet" href="css/dashboard.css" />
+
+    <!-- Logout -->
+    <script>
+        (function () {
+            if (!sessionStorage.getItem('treeco_user')) {
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 </head>
 
 <body>
-    <script>
-        function logout() {
-            sessionStorage.removeItem('treeco_user');
-            window.location.replace('index.html');
-        }
-    </script>
     <!-- ── Barra lateral izquierda ─────────────────────── -->
     <div class="lateral-izq">
         <!-- Logo -->
@@ -46,7 +49,6 @@
             </div>
         </a>
     </div>
-    <button class="btn-logout" onclick="logout()">Cerrar sesion</button>
     <script>
         function logout() {
             sessionStorage.removeItem('treeco_user');
