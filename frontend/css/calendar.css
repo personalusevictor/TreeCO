@@ -38,7 +38,7 @@ body {
   justify-content: flex-start;
 }
 
-.lateral-izq {
+.barra-superior {
   position: relative !important;
   top: auto !important;
   left: auto !important;
@@ -58,7 +58,7 @@ body {
 
 /* ═══════════════════════════════════════════════
 			LAYOUT PRINCIPAL
-			body → lateral-izq (header) + cal-page (resto)
+			body → barra-superior (header) + cal-page (resto)
 			cal-page → cal-sidebar (izq) + cal-section (der)
 			cal-section → cal-bar + weekdays-row + cal-grid
 			═══════════════════════════════════════════════ */
