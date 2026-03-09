@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+	<title>TreeCO - Dashboard</title>
+	<!-- Favicon -->
+	<link rel="icon" type="image/png" href="assets/img/favicon/TreeCO.svg" />
+	<link rel="apple-touch-icon" href="assets/img/favicon/TreeCO.svg" />
+
+	<!-- Styles -->
+	<link rel="stylesheet" href="css/root.css" />
+	<link rel="stylesheet" href="css/dashboard.css" />
+
+	<!-- Logout -->
+	<script>
+		(function () {
+			if (!sessionStorage.getItem('treeco_user')) {
+				window.location.replace('index.html');
+			}
+		})();
+	</script>
+</head>
+
+<body>
+	<!-- ── Barra lateral izquierda ─────────────────────── -->
+	<div class="barra-superior">
+		<!-- Logo -->
+		<a class="logo" href="dashboard.html">
+			<img src="assets/img/favicon/TreeCO.svg" alt="TreeCO logo" class="logo-imagen" width="40" height="40"
+				draggable="false" />
+			<span class="logo-nombre">Tree<span>CO</span></span>
+		</a>
+
+		<nav class="navegador">
+			<a class="enlace-activo" href="dashboard.html"><span class="icono">⬡</span> Dashboard</a>
+			<a class="enlace" href=""><span class="icono">⚐</span> Proyectos</a>
+			<a class="enlace" href=""><span class="icono">✓</span> Tareas</a>
+			<a class="enlace" href="calendar.html"><span class="icono">◷</span> Calendario</a>
+		</nav>
+
+		<!-- Usuario -->
+		<a class="usuario" href="">
+			<div class="usuario-avatar">
+				<img src="" alt="img-usuario" />
+				<span class="usuario-status"></span>
+			</div>
+			<div class="nombre-usuario">
+				<h3>Nombre</h3>
+				<h4>Rol</h4>
+			</div>
+		</a>
+	</div>
+	<script>
+		function logout() {
+			sessionStorage.removeItem('treeco_user');
+			window.location.replace('index.html');
+		}
+	</script>
+</body>
+
+</html>
