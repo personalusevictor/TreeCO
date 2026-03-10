@@ -22,6 +22,7 @@ public class UserService {
 
     /**
      * Registra un nuevo usuario en la base de datos.
+     * 
      * @throws IllegalArgumentException si el email ya está registrado
      */
     @Transactional
@@ -35,6 +36,7 @@ public class UserService {
 
     /**
      * Verifica las credenciales de un usuario.
+     * 
      * @return El usuario autenticado
      * @throws NoSuchElementException   si el email no existe
      * @throws IllegalArgumentException si la contraseña es incorrecta
@@ -60,6 +62,7 @@ public class UserService {
 
     /**
      * Busca un usuario por ID.
+     * 
      * @throws NoSuchElementException si no existe
      */
     public User findById(Integer id) {
@@ -69,6 +72,7 @@ public class UserService {
 
     /**
      * Busca un usuario por email (case-insensitive).
+     * 
      * @throws NoSuchElementException si no existe
      */
     public User findByEmail(String email) {
@@ -87,7 +91,9 @@ public class UserService {
 
     /**
      * Actualiza username y/o email de un usuario.
-     * @throws IllegalArgumentException si el nuevo email ya está en uso por otro usuario
+     * 
+     * @throws IllegalArgumentException si el nuevo email ya está en uso por otro
+     *                                  usuario
      */
     @Transactional
     public User updateUser(Integer id, String newUsername, String newEmail) {
@@ -110,6 +116,7 @@ public class UserService {
 
     /**
      * Cambia la contraseña de un usuario verificando la actual.
+     * 
      * @throws IllegalArgumentException si la contraseña actual es incorrecta
      */
     @Transactional
@@ -125,6 +132,7 @@ public class UserService {
 
     /**
      * Elimina un usuario por ID.
+     * 
      * @throws NoSuchElementException si no existe
      */
     @Transactional

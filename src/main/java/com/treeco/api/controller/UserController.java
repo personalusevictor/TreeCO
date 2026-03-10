@@ -7,7 +7,6 @@ import com.treeco.api.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -43,7 +42,7 @@ public class UserController {
     // PUT /api/users/{id}
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Integer id,
-                                        @RequestBody UpdateUserRequest request) {
+            @RequestBody UpdateUserRequest request) {
         try {
             User updated = userService.updateUser(id, request.getUsername(), request.getEmail());
             return ResponseEntity.ok(updated);
@@ -59,7 +58,7 @@ public class UserController {
     // PUT /api/users/{id}/password
     @PutMapping("/{id}/password")
     public ResponseEntity<?> changePassword(@PathVariable Integer id,
-                                            @RequestBody ChangePasswordRequest request) {
+            @RequestBody ChangePasswordRequest request) {
         try {
             userService.changePassword(id, request.getOldPassword(), request.getNewPassword());
             return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));

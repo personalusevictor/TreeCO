@@ -1,37 +1,27 @@
-// dashboard.js
+// dashboard.js - COMPLETO
+const CLAVE_SESION = "treeco_user"
 
-// Constante con el usuario registrado
-const user = JSON.parse(localStorage.getItem("treeco_user"))
+// 1. COMPROBACIÓN DE SEGURIDAD
+const sesionRaw = localStorage.getItem(CLAVE_SESION)
 
-// Comprueba que no estes en dashnboard sin iniciar sesion
-if (!user) {
-  globalThis.location.href = "../index.html"
+if (!sesionRaw == null) {
+  window.location.replace("../index.html")
+} else {
+  const usuario = JSON.parse(sesionRaw)
+
+  // 2. MOSTRAR NOMBRE
+  const display = document.getElementById("username")
+  if (display && usuario.username) {
+    display.textContent = usuario.username
+  }
+
+  // 3. LOGOUT
+  const btnLogout = document.getElementById("logout")
+  if (btnLogout) {
+    btnLogout.addEventListener("click", (e) => {
+      e.preventDefault()
+      localStorage.removeItem(CLAVE_SESION)
+      window.location.replace("../index.html")
+    })
+  }
 }
-
-// Guarda el nombre del usuario registrado en el id "username"
-const username = document.getElementById("username")
-if (username) {
-  username.textContent = user.username
-}
-
-// Hace que los elemntos con el id "logout" cierren la sesion del usuario
-const logout = document.getElementById("logout")
-logout.addEventListener("click", () => {
-  localStorage.removeItem("treeco_user")
-  globalThis.location.href = "../index.html"
-})
-
-// Cambia la clase de los enlaces del nav
-const listaEnlaces = document.getElementsByClassName("enlace")
-
-for (const enlace of listaEnlaces) {
-  enlace.addEventListener("click", () => {
-    for (const e of listaEnlaces) {
-      e.classList.remove("enlace-activo")
-    }
-    enlace.classList.add("enlace-activo")
-  })
-}
-
-// Task pendientes
-

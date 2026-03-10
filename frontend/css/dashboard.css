@@ -17,7 +17,11 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: radial-gradient(ellipse 80% 60% at 20% 80%, rgba(20, 60, 35, 0.55) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(15, 45, 28, 0.45) 0%, transparent 60%), radial-gradient(ellipse 100% 80% at 50% 50%, rgba(8, 20, 12, 0.8) 0%, transparent 70%), var(--color-bg-deep);
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(20, 60, 35, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(15, 45, 28, 0.45) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 80% at 50% 50%, rgba(8, 20, 12, 0.8) 0%, transparent 70%),
+    var(--color-bg-deep);
   color: var(--color-text-primary);
   min-height: 100vh;
   overflow: hidden;
@@ -29,6 +33,7 @@ body {
 
 /* ── Barra lateral izquierda ───────────────────────────── */
 header {
+header {
   width: 100vw;
   display: flex;
   position: absolute;
@@ -36,7 +41,16 @@ header {
   padding: var(--space-5) var(--space-6);
   justify-content: space-between;
   align-items: center;
+
+  /* Sutil separador inferior */
   border-bottom: 1px solid var(--color-glass-border);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  background: linear-gradient(
+    to bottom,
+    rgba(5, 10, 8, 0.6) 0%,
+    transparent 100%
+  );
 }
 
 /* --- Logo --- */
@@ -45,11 +59,18 @@ header .logo {
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+header .logo:hover {
+  opacity: 0.8;
 }
 
 header .logo .logo-imagen {
   width: 32px;
   height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 header .logo .logo-nombre {
@@ -69,7 +90,7 @@ header .logo .logo-nombre span {
 header .navegador {
   display: flex;
   align-items: center;
-  gap: var(--space-20);
+  gap: var(--space-2);
 }
 
 header nav .enlace,
@@ -83,7 +104,12 @@ header nav .enlace-activo {
   font-weight: var(--weight-medium);
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-md);
-  transition: all var(--duration-fast) var(--ease-smooth);
+  border: 1px solid transparent;
+  transition:
+    color var(--duration-fast) var(--ease-smooth),
+    background var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth);
+  white-space: nowrap;
 }
 
 header nav .enlace:hover {
@@ -108,8 +134,8 @@ header nav .enlace-activo:hover {
 /* --- Usuario --- */
 header .usuario {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: var(--space-3);
   text-decoration: none;
 }
 

@@ -1,7 +1,8 @@
 package com.treeco.api.repository;
 
 import com.treeco.api.model.Notification;
-import com.treeco.api.model.NotificationType;
+import com.treeco.api.model.enums.NotificationType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

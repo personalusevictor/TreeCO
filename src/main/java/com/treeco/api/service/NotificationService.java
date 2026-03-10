@@ -1,8 +1,8 @@
 package com.treeco.api.service;
 
 import com.treeco.api.model.Notification;
-import com.treeco.api.model.NotificationType;
 import com.treeco.api.model.User;
+import com.treeco.api.model.enums.NotificationType;
 import com.treeco.api.repository.NotificationRepository;
 import com.treeco.api.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               UserRepository userRepository) {
+            UserRepository userRepository) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
     }
@@ -74,8 +74,8 @@ public class NotificationService {
      */
     @Transactional
     public Notification createForProject(Integer userId, NotificationType type,
-                                         String title, String message,
-                                         Long projectId, String actionUrl) {
+            String title, String message,
+            Long projectId, String actionUrl) {
         User user = findUserOrThrow(userId);
         Notification notification = new Notification(user, type, title, message);
         notification.setProjectId(projectId);
@@ -88,8 +88,8 @@ public class NotificationService {
      */
     @Transactional
     public Notification createForTask(Integer userId, NotificationType type,
-                                      String title, String message,
-                                      Long projectId, Long taskId, String actionUrl) {
+            String title, String message,
+            Long projectId, Long taskId, String actionUrl) {
         User user = findUserOrThrow(userId);
         Notification notification = new Notification(user, type, title, message);
         notification.setProjectId(projectId);
@@ -103,7 +103,7 @@ public class NotificationService {
      */
     @Transactional
     public Notification createHighPriority(Integer userId, NotificationType type,
-                                            String title, String message, String actionUrl) {
+            String title, String message, String actionUrl) {
         User user = findUserOrThrow(userId);
         Notification notification = new Notification(user, type, title, message);
         notification.setPriority(1);
@@ -115,6 +115,7 @@ public class NotificationService {
 
     /**
      * Marca una notificación concreta como leída
+     * 
      * @throws NoSuchElementException si no existe o no pertenece al usuario
      */
     @Transactional
@@ -136,6 +137,7 @@ public class NotificationService {
 
     /**
      * Marca todas las notificaciones del usuario como leídas
+     * 
      * @return número de notificaciones actualizadas
      */
     @Transactional
@@ -148,6 +150,7 @@ public class NotificationService {
 
     /**
      * Elimina una notificación concreta
+     * 
      * @throws NoSuchElementException si no existe o no pertenece al usuario
      */
     @Transactional
@@ -158,6 +161,7 @@ public class NotificationService {
 
     /**
      * Elimina todas las notificaciones leídas del usuario
+     * 
      * @return número de notificaciones eliminadas
      */
     @Transactional

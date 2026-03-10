@@ -1,7 +1,7 @@
 package com.treeco.api.controller;
 
 import com.treeco.api.model.ProjectMember;
-import com.treeco.api.model.ProjectRole;
+import com.treeco.api.model.enums.ProjectRole;
 import com.treeco.api.service.ProjectMemberService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +21,19 @@ public class ProjectMemberController {
         this.memberService = memberService;
     }
 
-    public record AddMemberRequest(Integer userId, ProjectRole role, Integer invitedByUserId) {}
-    public record ChangeRoleRequest(ProjectRole newRole) {}
-    public record TransferOwnershipRequest(Integer currentOwnerId, Integer newOwnerId) {}
+    public record AddMemberRequest(Integer userId, ProjectRole role, Integer invitedByUserId) {
+    }
+
+    public record ChangeRoleRequest(ProjectRole newRole) {
+    }
+
+    public record TransferOwnershipRequest(Integer currentOwnerId, Integer newOwnerId) {
+    }
 
     // GET /projects/{projectId}/members
     @GetMapping
     public ResponseEntity<?> getMembers(@PathVariable Integer projectId,
-                                        @RequestParam(required = false) ProjectRole role) {
+            @RequestParam(required = false) ProjectRole role) {
         try {
             List<ProjectMember> members = role != null
                     ? memberService.getMembersByRole(projectId, role)
@@ -46,8 +51,7 @@ public class ProjectMemberController {
         try {
             return ResponseEntity.ok(Map.of(
                     "projectId", projectId,
-                    "memberCount", memberService.countMembers(projectId)
-            ));
+                    "memberCount", memberService.countMembers(projectId)));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
@@ -57,7 +61,7 @@ public class ProjectMemberController {
     // POST /projects/{projectId}/members
     @PostMapping
     public ResponseEntity<?> addMember(@PathVariable Integer projectId,
-                                       @RequestBody AddMemberRequest request) {
+            @RequestBody AddMemberRequest request) {
         try {
             if (request.userId() == null || request.role() == null || request.invitedByUserId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -78,8 +82,8 @@ public class ProjectMemberController {
     // PATCH /projects/{projectId}/members/{userId}/role
     @PatchMapping("/{userId}/role")
     public ResponseEntity<?> changeRole(@PathVariable Integer projectId,
-                                        @PathVariable Integer userId,
-                                        @RequestBody ChangeRoleRequest request) {
+            @PathVariable Integer userId,
+            @RequestBody ChangeRoleRequest request) {
         try {
             if (request.newRole() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -99,7 +103,7 @@ public class ProjectMemberController {
     // PATCH /projects/{projectId}/members/transfer-ownership
     @PatchMapping("/transfer-ownership")
     public ResponseEntity<?> transferOwnership(@PathVariable Integer projectId,
-                                               @RequestBody TransferOwnershipRequest request) {
+            @RequestBody TransferOwnershipRequest request) {
         try {
             if (request.currentOwnerId() == null || request.newOwnerId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -119,7 +123,7 @@ public class ProjectMemberController {
     // DELETE /projects/{projectId}/members/{userId}
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> removeMember(@PathVariable Integer projectId,
-                                          @PathVariable Integer userId) {
+            @PathVariable Integer userId) {
         try {
             memberService.removeMember(projectId, userId);
             return ResponseEntity.ok(Map.of("message", "Miembro eliminado correctamente"));

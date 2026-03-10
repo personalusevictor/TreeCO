@@ -1,7 +1,8 @@
 package com.treeco.api.repository;
 
 import com.treeco.api.model.ProjectMember;
-import com.treeco.api.model.ProjectRole;
+import com.treeco.api.model.enums.ProjectRole;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

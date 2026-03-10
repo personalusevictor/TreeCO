@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import com.treeco.api.model.enums.State;
 import jakarta.persistence.*;
 
 @Entity
@@ -41,17 +42,20 @@ public class Project {
     }
 
     public boolean addTask(Task task) {
-        if (task == null) throw new IllegalArgumentException("El campo 'task' no puede ser null");
+        if (task == null)
+            throw new IllegalArgumentException("El campo 'task' no puede ser null");
         return this.tasks.add(task);
     }
 
     public void addTask(Task task, int index) {
-        if (task == null) throw new IllegalArgumentException("El campo 'task' no puede ser null");
+        if (task == null)
+            throw new IllegalArgumentException("El campo 'task' no puede ser null");
         this.tasks.add(index, task);
     }
 
     public boolean removeTask(Task task) {
-        if (task == null) throw new IllegalArgumentException("El campo 'task' no puede ser null");
+        if (task == null)
+            throw new IllegalArgumentException("El campo 'task' no puede ser null");
         return this.tasks.remove(task);
     }
 
@@ -60,25 +64,38 @@ public class Project {
     }
 
     public List<Task> getTasksByState(State state) {
-        if (state == null) throw new IllegalArgumentException("El campo 'state' no puede estar vacio");
+        if (state == null)
+            throw new IllegalArgumentException("El campo 'state' no puede estar vacio");
         return this.tasks.stream().filter(t -> t.getState() == state).toList();
     }
 
-    public List<Task> getInProgressTasks()  { return getTasksByState(State.IN_PROGRESS); }
-    public List<Task> getCompletedTasks()   { return getTasksByState(State.COMPLETED); }
-    public List<Task> getExpiredTasks()     { return getTasksByState(State.EXPIRED); }
+    public List<Task> getInProgressTasks() {
+        return getTasksByState(State.IN_PROGRESS);
+    }
+
+    public List<Task> getCompletedTasks() {
+        return getTasksByState(State.COMPLETED);
+    }
+
+    public List<Task> getExpiredTasks() {
+        return getTasksByState(State.EXPIRED);
+    }
 
     public int getProgress() {
-        if (this.tasks.isEmpty()) return 0;
+        if (this.tasks.isEmpty())
+            return 0;
         return (getCompletedTasks().size() * 100) / this.tasks.size();
     }
 
-    // FIXED: devuelve Integer en lugar de int para consistencia con JPA y evitar NPE
+    // FIXED: devuelve Integer en lugar de int para consistencia con JPA y evitar
+    // NPE
     public Integer getId() {
         return id;
     }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
     public void setName(String name) {
         if (name == null || name.trim().isEmpty()) {
@@ -87,11 +104,25 @@ public class Project {
         this.name = name.trim();
     }
 
-    public String getDescription()              { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public LocalDate getCreationDate()          { return creationDate; }
-    public User getUser()                       { return user; }
-    public void setUser(User user)              { this.user = user; }
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public LocalDate getCreationDate() {
+        return creationDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public List<Task> getTasks() {
         return List.copyOf(this.tasks);
@@ -113,8 +144,10 @@ public class Project {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
         Project other = (Project) obj;
         return Objects.equals(id, other.id);
     }

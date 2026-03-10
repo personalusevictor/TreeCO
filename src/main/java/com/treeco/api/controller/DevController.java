@@ -22,9 +22,9 @@ public class DevController {
     private final EntityManager entityManager;
 
     public DevController(UserRepository userRepository,
-                         ProjectRepository projectRepository,
-                         TaskRepository taskRepository,
-                         EntityManager entityManager) {
+            ProjectRepository projectRepository,
+            TaskRepository taskRepository,
+            EntityManager entityManager) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.taskRepository = taskRepository;
