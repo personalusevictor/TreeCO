@@ -22,13 +22,16 @@ logout.addEventListener("click", () => {
 })
 
 // Cambia la clase de los enlaces del nav
-const listaEnlaces = document.getElementsByClassName("link")
+const listaEnlaces = document.getElementsByClassName("enlace")
 
 for (const enlace of listaEnlaces) {
   enlace.addEventListener("click", () => {
     for (const e of listaEnlaces) {
-      e.classList.remove("link-active")
+      e.classList.remove("enlace-activo")
     }
-    enlace.classList.add("link-active")
+    enlace.classList.add("enlace-activo")
   })
 }
+
+// Task pendientes
+
