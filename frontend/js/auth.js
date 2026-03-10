@@ -175,7 +175,7 @@
 			 // ✅ Success — store user and redirect
 			 sessionStorage.setItem("treeco_user", JSON.stringify(data))
 			 showSuccessAndRedirect(btnLoginSubmit, "¡Bienvenido!", () => {
-				 window.location.href = "page/dashboard.html"
+				 window.location.href = "dashboard.html"
 			 })
 		 } catch (err) {
 			 showBanner(errorLoginBanner, "No se pudo conectar al servidor")
