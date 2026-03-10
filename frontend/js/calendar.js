@@ -4,85 +4,85 @@
 
 	 const API_BASE = "http://localhost:8080";
 
-	 const S = {
-		 cur:      null,
-		 sel:      null,
+	 const state = {
+		 currentDate:  null,
+		 selectedDate: null,
 		 view:     "month",
 		 tasks:    [],
 		 projects: [],
-		 projId:   "",
+		 projectId:   "",
 		 user:     null,
-		 mFilter:  "all",
-		 mTasks:   [],
-		 pyear:    new Date().getFullYear(),
-		 pmonth:   null,   // mes seleccionado en picker (pendiente de aplicar)
+		 modalFilter: "all",
+		 modalTasks:  [],
+		 pickerYear:  new Date().getFullYear(),
+		 pickerMonth: null,   // mes seleccionado en picker (pendiente de aplicar)
 	 };
 	 
-	 let D = {};
+	 let ui = {};
 	 
-	 function initDOM() {
-		 const g = id => document.getElementById(id);
-		 D.grid       = g("cal-grid");
-		 D.wdays      = g("cal-weekdays");
-		 D.mname      = g("cal-month-name");
-		 D.myear      = g("cal-year");
-		 D.loading    = g("cal-loading");
-		 D.prev       = g("cal-prev");
-		 D.next       = g("cal-next");
-		 D.btnToday   = g("btn-today");
-		 D.vMonth     = g("view-month");
-		 D.vWeek      = g("view-week");
-		 D.projSel    = g("project-filter");
-		 D.titleBtn   = g("cal-title-btn");
-		 D.miniGrid   = g("mini-grid");
-		 D.miniLbl    = g("mini-month-label");
-		 D.miniPrev   = g("mini-prev");
-		 D.miniNext   = g("mini-next");
-		 D.miniLblBtn = g("mini-month-label-btn");
-		 D.upList     = g("upcoming-list");
-		 D.pickerBd   = g("picker-backdrop");
-		 D.pickerMos  = g("picker-months");
-		 D.pyInput    = g("picker-year-input");
-		 D.pyPrev     = g("picker-year-prev");
-		 D.pyNext     = g("picker-year-next");
-		 D.pickerClose  = g("picker-close-btn");
-		 D.pickerToday  = g("picker-today-btn");
-		 D.pickerCancel = g("picker-cancel-btn");
-		 D.pickerApply  = g("picker-apply-btn");
-		 D.mOverlay   = g("day-modal-backdrop");
-		 D.mDate      = g("modal-date-title");
-		 D.mList      = g("modal-tasks-list");
-		 D.mClose     = g("modal-close");
-		 D.addBtn     = g("btn-add-task");
-		 D.mStats     = g("modal-day-stats");
-		 D.mFilters   = document.querySelector(".modal-filters");
-		 D.search     = g("task-search");
-		 D.sResults   = g("search-results");
-		 D.navAvatar  = g("nav-avatar");
-		 D.navName    = g("nav-name");
-		 D.navRole    = g("nav-role");
-		 D.toasts     = g("toast-container");
+	 function initUI() {
+		 const getById = id => document.getElementById(id);
+		 ui.grid       = getById("cal-grid");
+		 ui.wdays      = getById("cal-weekdays");
+		 ui.mname      = getById("cal-month-name");
+		 ui.myear      = getById("cal-year");
+		 ui.loading    = getById("cal-loading");
+		 ui.prev       = getById("cal-prev");
+		 ui.next       = getById("cal-next");
+		 ui.btnToday   = getById("btn-today");
+		 ui.vMonth     = getById("view-month");
+		 ui.vWeek      = getById("view-week");
+		 ui.projSel    = getById("project-filter");
+		 ui.titleBtn   = getById("cal-title-btn");
+		 ui.miniGrid   = getById("mini-grid");
+		 ui.miniLbl    = getById("mini-month-label");
+		 ui.miniPrev   = getById("mini-prev");
+		 ui.miniNext   = getById("mini-next");
+		 ui.miniLblBtn = getById("mini-month-label-btn");
+		 ui.upList     = getById("upcoming-list");
+		 ui.pickerBd   = getById("picker-backdrop");
+		 ui.pickerMos  = getById("picker-months");
+		 ui.pyInput    = getById("picker-year-input");
+		 ui.pyPrev     = getById("picker-year-prev");
+		 ui.pyNext     = getById("picker-year-next");
+		 ui.pickerClose  = getById("picker-close-btn");
+		 ui.pickerToday  = getById("picker-today-btn");
+		 ui.pickerCancel = getById("picker-cancel-btn");
+		 ui.pickerApply  = getById("picker-apply-btn");
+		 ui.mOverlay   = getById("day-modal-backdrop");
+		 ui.mDate      = getById("modal-date-title");
+		 ui.mList      = getById("modal-tasks-list");
+		 ui.mClose     = getById("modal-close");
+		 ui.addBtn     = getById("btn-add-task");
+		 ui.mStats     = getById("modal-day-stats");
+		 ui.mFilters   = document.querySelector(".modal-filters");
+		 ui.search     = getById("task-search");
+		 ui.sResults   = getById("search-results");
+		 ui.navAvatar  = getById("nav-avatar");
+		 ui.navName    = getById("nav-name");
+		 ui.navRole    = getById("nav-role");
+		 ui.toasts     = getById("toast-container");
 	 }
 	 
 	 /* ══════════════════════════════════════════════════
 			INIT
 	 ══════════════════════════════════════════════════ */
 	 async function init() {
-		 initDOM();
+		 initUI();
 	 
 		 const now = new Date();
-		 S.cur   = new Date(now.getFullYear(), now.getMonth(), 1);
-		 S.pyear = now.getFullYear();
+		 state.currentDate   = new Date(now.getFullYear(), now.getMonth(), 1);
+		 state.pickerYear = now.getFullYear();
 	 
 		 try {
 			 const raw = sessionStorage.getItem("treeco_user");
 			 if (raw) {
-				 S.user = JSON.parse(raw);
-				 if (D.navName)   D.navName.textContent  = S.user.username || S.user.email || "Usuario";
-				 if (D.navRole)   D.navRole.textContent   = S.user.role    || "Rol";
-				 if (D.navAvatar && S.user.avatarUrl) D.navAvatar.src = S.user.avatarUrl;
+				 state.user = JSON.parse(raw);
+				 if (ui.navName)   ui.navName.textContent  = state.user.username || state.user.email || "Usuario";
+				 if (ui.navRole)   ui.navRole.textContent   = state.user.role    || "Rol";
+				 if (ui.navAvatar && state.user.avatarUrl) ui.navAvatar.src = state.user.avatarUrl;
 			 }
-		 } catch(e) { console.warn("user:", e); }
+		 } catch(exception) { console.warn("user:", exception); }
 	 
 		 bindEvents();
 		 render();
@@ -97,28 +97,28 @@
 	 ══════════════════════════════════════════════════ */
 	 async function loadProjects() {
 		 try {
-			 const uid = S.user?.id;
+			 const uid = state.user?.id;
 			 const res = await fetch(uid ? `${API_BASE}/projects?userId=${uid}` : `${API_BASE}/projects`);
 			 if (!res.ok) return;
-			 S.projects = await res.json();
+			 state.projects = await res.json();
 			 fillProjectSelect();
-		 } catch(e) { console.warn("projects:", e); }
+		 } catch(exception) { console.warn("projects:", exception); }
 	 }
 	 
 	 async function loadTasks() {
 		 setLoading(true);
-		 S.tasks = [];
+		 state.tasks = [];
 		 try {
-			 const list = S.projId
-				 ? S.projects.filter(p => String(p.id) === S.projId)
-				 : S.projects;
+			 const list = state.projectId
+				 ? state.projects.filter(p => String(p.id) === state.projectId)
+				 : state.projects;
 			 const settled = await Promise.allSettled(
 				 list.map(p => fetch(`${API_BASE}/projects/${p.id}/tasks`).then(r => r.ok ? r.json() : []))
 			 );
 			 settled.forEach((r, i) => {
 				 if (r.status === "fulfilled") {
 					 r.value.forEach(t => { t._pName = list[i].name; t._pId = list[i].id; });
-					 S.tasks.push(...r.value);
+					 state.tasks.push(...r.value);
 				 }
 			 });
 		 } catch { toast("Error cargando tareas", "err"); }
@@ -142,128 +142,128 @@
 			RENDER
 	 ══════════════════════════════════════════════════ */
 	 function render() {
-		 // renderWeek actualiza S.cur primero — mini cal debe ir después
-		 S.view === "month" ? renderMonth() : renderWeek();
+		 // renderWeek actualiza state.currentDate primero — mini cal debe ir después
+		 state.view === "month" ? renderMonth() : renderWeek();
 		 updateTitle();
 		 renderMiniCal();
 		 renderUpcoming();
 	 }
 	 
 	 function updateTitle() {
-		 D.mname.textContent = cap(getMonthName(S.cur));
-		 D.myear.textContent = S.cur.getFullYear();
+		 ui.mname.textContent = cap(getMonthName(state.currentDate));
+		 ui.myear.textContent = state.currentDate.getFullYear();
 	 }
 	 
 	 function renderMonth() {
-		 D.grid.innerHTML  = "";
-		 D.grid.className  = "cal-grid";
-		 D.wdays.innerHTML = "<span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>";
+		 ui.grid.innerHTML  = "";
+		 ui.grid.className  = "cal-grid";
+		 ui.wdays.innerHTML = "<span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>";
 	 
-		 const yr  = S.cur.getFullYear();
-		 const mo  = S.cur.getMonth();
-		 const dow = (new Date(yr, mo, 1).getDay() + 6) % 7;
+		 const year  = state.currentDate.getFullYear();
+		 const month  = state.currentDate.getMonth();
+		 const dayOffset = (new Date(year, month, 1).getDay() + 6) % 7;
 	 
-		 const heat = {};
-		 S.tasks.forEach(t => {
+		 const taskHeatmap = {};
+		 state.tasks.forEach(t => {
 			 const dl = parseDL(t);
-			 if (dl && dl.getFullYear()===yr && dl.getMonth()===mo)
-				 heat[dl.getDate()] = (heat[dl.getDate()]||0) + 1;
+			 if (dl && dl.getFullYear()===year && dl.getMonth()===month)
+				 taskHeatmap[dl.getDate()] = (taskHeatmap[dl.getDate()]||0) + 1;
 		 });
-		 const maxH = Math.max(1, ...Object.values(heat));
+		 const maxHeat = Math.max(1, ...Object.values(taskHeatmap));
 	 
-		 for (let i = dow-1; i >= 0; i--)
-			 D.grid.appendChild(mkCell(new Date(yr,mo,-i), true, 0, 1));
-		 const dim = new Date(yr,mo+1,0).getDate();
-		 for (let d = 1; d <= dim; d++)
-			 D.grid.appendChild(mkCell(new Date(yr,mo,d), false, heat[d]||0, maxH));
-		 const total = dow + dim;
+		 for (let i = dayOffset-1; i >= 0; i--)
+			 ui.grid.appendChild(mkCell(new Date(year,month,-i), true, 0, 1));
+		 const daysInMonth = new Date(year,month+1,0).getDate();
+		 for (let d = 1; d <= daysInMonth; d++)
+			 ui.grid.appendChild(mkCell(new Date(year,month,d), false, taskHeatmap[d]||0, maxHeat));
+		 const total = dayOffset + daysInMonth;
 		 const cols  = Math.ceil(total/7)*7;
 		 for (let i = 1; i <= cols-total; i++)
-			 D.grid.appendChild(mkCell(new Date(yr,mo+1,i), true, 0, 1));
+			 ui.grid.appendChild(mkCell(new Date(year,month+1,i), true, 0, 1));
 	 }
 	 
 	 function renderWeek() {
-		 D.grid.innerHTML = "";
-		 D.grid.className = "cal-grid week-view";
+		 ui.grid.innerHTML = "";
+		 ui.grid.className = "cal-grid week-view";
 	 
-		 const anchor = S.sel ? new Date(S.sel) : new Date();
-		 const dow    = (anchor.getDay()+6)%7;
-		 const mon    = new Date(anchor);
-		 mon.setDate(anchor.getDate()-dow);
+		 const anchor = state.selectedDate ? new Date(state.selectedDate) : new Date();
+		 const dayOffset    = (anchor.getDay()+6)%7;
+		 const mondayDate    = new Date(anchor);
+		 mondayDate.setDate(anchor.getDate()-dayOffset);
 	 
 		 const LBL = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-		 D.wdays.innerHTML = "";
+		 ui.wdays.innerHTML = "";
 		 for (let i = 0; i < 7; i++) {
-			 const d  = new Date(mon); d.setDate(mon.getDate()+i);
-			 const iT = isSameDay(d, new Date());
+			 const d  = new Date(mondayDate); d.setDate(mondayDate.getDate()+i);
+			 const isTodayWeek = isSameDay(d, new Date());
 			 const sp = document.createElement("span");
 			 sp.style.cssText = "line-height:1.5;display:flex;flex-direction:column;align-items:center;gap:2px";
-			 sp.innerHTML = `<span>${LBL[i]}</span><span style="font-family:var(--font-mono);font-size:.85rem;${iT?"color:var(--color-text-accent);font-weight:700":"color:rgba(255,255,255,.3)"}">${d.getDate()}</span>`;
-			 D.wdays.appendChild(sp);
+			 sp.innerHTML = `<span>${LBL[i]}</span><span style="font-family:var(--font-mono);font-size:.85rem;${isTodayWeek?"color:var(--color-text-accent);font-weight:700":"color:rgba(255,255,255,.3)"}">${d.getDate()}</span>`;
+			 ui.wdays.appendChild(sp);
 		 }
 	 
-		 S.cur = new Date(anchor.getFullYear(), anchor.getMonth(), 1);  // mes del día seleccionado, no del lunes
+		 state.currentDate = new Date(anchor.getFullYear(), anchor.getMonth(), 1);  // mes del día seleccionado, no del lunes
 		 updateTitle();
 	 
 		 for (let i = 0; i < 7; i++) {
-			 const d = new Date(mon); d.setDate(mon.getDate()+i);
-			 const c = tasksFor(d).length;
-			 D.grid.appendChild(mkCell(d, false, c, Math.max(1,c)));
+			 const d = new Date(mondayDate); d.setDate(mondayDate.getDate()+i);
+			 const weekDayTaskCount = tasksFor(d).length;
+			 ui.grid.appendChild(mkCell(d, false, weekDayTaskCount, Math.max(1,weekDayTaskCount)));
 		 }
 	 }
 	 
-	 function mkCell(date, ghost, cnt, maxCnt) {
+	 function mkCell(date, ghost, taskCount, maxTaskCount) {
 		 const tasks = tasksFor(date);
-		 const isT   = isSameDay(date, new Date());
-		 const isSel = isSameDay(date, S.sel);
+		 const isToday   = isSameDay(date, new Date());
+		 const isSelected = isSameDay(date, state.selectedDate);
 	 
-		 let hCls = "";
-		 if (!ghost && cnt > 0) {
-			 const r = cnt/maxCnt;
-			 hCls = r>=.75?"h4":r>=.5?"h3":r>=.25?"h2":"h1";
+		 let heatClass = "";
+		 if (!ghost && taskCount > 0) {
+			 const r = taskCount/maxTaskCount;
+			 heatClass = r>=.75?"h4":r>=.5?"h3":r>=.25?"h2":"h1";
 		 }
 	 
 		 const cell = document.createElement("div");
-		 cell.className = ["cal-day", ghost?"other-month":"", isT?"today":"", isSel?"selected":"", hCls]
+		 cell.className = ["cal-day", ghost?"other-month":"", isToday?"today":"", isSelected?"selected":"", heatClass]
 			 .filter(Boolean).join(" ");
 	 
-		 const hdr = document.createElement("div");
-		 hdr.className = "day-hdr";
-		 const num = document.createElement("div");
-		 num.className = "day-num";
-		 num.textContent = date.getDate();
-		 hdr.appendChild(num);
+		 const headerEl = document.createElement("div");
+		 headerEl.className = "day-hdr";
+		 const dayNumberEl = document.createElement("div");
+		 dayNumberEl.className = "day-num";
+		 dayNumberEl.textContent = date.getDate();
+		 headerEl.appendChild(dayNumberEl);
 		 if (tasks.length) {
-			 const c = document.createElement("span");
-			 c.className = "day-cnt";
-			 c.textContent = tasks.length;
-			 hdr.appendChild(c);
+			 const taskCountBadge = document.createElement("span");
+			 taskCountBadge.className = "day-cnt";
+			 taskCountBadge.textContent = tasks.length;
+			 headerEl.appendChild(taskCountBadge);
 		 }
-		 cell.appendChild(hdr);
+		 cell.appendChild(headerEl);
 	 
-		 const wrap = document.createElement("div");
-		 wrap.className = "day-tasks";
-		 const MAX = S.view==="week" ? 8 : 3;
-		 tasks.slice(0,MAX).forEach(t => {
+		 const tasksWrapper = document.createElement("div");
+		 tasksWrapper.className = "day-tasks";
+		 const maxVisible = state.view==="week" ? 8 : 3;
+		 tasks.slice(0,maxVisible).forEach(t => {
 			 const st   = tState(t);
-			 const cls  = st==="done"?"p-done":st==="exp"?"p-exp":"p-"+(t.priority||"MID");
+			 const badgeClass  = st==="done"?"p-done":st==="exp"?"p-exp":"p-"+(t.priority||"MID");
 			 const pill = document.createElement("div");
-			 pill.className = `tpill ${cls}`;
+			 pill.className = `tpill ${badgeClass}`;
 			 pill.innerHTML = `<span class="tpill-dot"></span><span class="tpill-txt">${esc(t.title)}</span>`;
 			 pill.addEventListener("click", e => { e.stopPropagation(); openModal(date); });
-			 wrap.appendChild(pill);
+			 tasksWrapper.appendChild(pill);
 		 });
-		 if (tasks.length > MAX) {
+		 if (tasks.length > maxVisible) {
 			 const m = document.createElement("div");
 			 m.className = "day-more";
-			 m.textContent = `+${tasks.length-MAX} más`;
+			 m.textContent = `+${tasks.length-maxVisible} más`;
 			 m.addEventListener("click", e => { e.stopPropagation(); openModal(date); });
-			 wrap.appendChild(m);
+			 tasksWrapper.appendChild(m);
 		 }
-		 cell.appendChild(wrap);
+		 cell.appendChild(tasksWrapper);
 	 
 		 cell.addEventListener("click", () => {
-			 S.sel = date;
+			 state.selectedDate = date;
 			 document.querySelectorAll(".cal-day.selected,.mini-day.selected")
 				 .forEach(el => el.classList.remove("selected"));
 			 cell.classList.add("selected");
@@ -278,18 +278,18 @@
 			MINI CAL
 	 ══════════════════════════════════════════════════ */
 	 function renderMiniCal() {
-		 const yr  = S.cur.getFullYear();
-		 const mo  = S.cur.getMonth();
-		 D.miniLbl.textContent = cap(getMonthName(S.cur)) + " " + yr;
-		 D.miniGrid.innerHTML  = "";
+		 const year  = state.currentDate.getFullYear();
+		 const month  = state.currentDate.getMonth();
+		 ui.miniLbl.textContent = cap(getMonthName(state.currentDate)) + " " + year;
+		 ui.miniGrid.innerHTML  = "";
 	 
-		 const dow = (new Date(yr,mo,1).getDay()+6)%7;
-		 const dim = new Date(yr,mo+1,0).getDate();
+		 const dayOffset = (new Date(year,month,1).getDay()+6)%7;
+		 const daysInMonth = new Date(year,month+1,0).getDate();
 	 
-		 for (let i=dow-1; i>=0; i--) mkMiniDay(new Date(yr,mo,-i), true);
-		 for (let d=1; d<=dim; d++)    mkMiniDay(new Date(yr,mo,d),  false);
-		 const total = dow+dim;
-		 for (let i=1; i<=Math.ceil(total/7)*7-total; i++) mkMiniDay(new Date(yr,mo+1,i), true);
+		 for (let i=dayOffset-1; i>=0; i--) mkMiniDay(new Date(year,month,-i), true);
+		 for (let d=1; d<=daysInMonth; d++)    mkMiniDay(new Date(year,month,d),  false);
+		 const total = dayOffset+daysInMonth;
+		 for (let i=1; i<=Math.ceil(total/7)*7-total; i++) mkMiniDay(new Date(year,month+1,i), true);
 	 }
 	 
 	 function mkMiniDay(date, ghost) {
@@ -297,16 +297,16 @@
 		 el.className = ["mini-day",
 			 ghost?"other-month":"",
 			 isSameDay(date,new Date())?"today":"",
-			 isSameDay(date,S.sel)?"selected":"",
+			 isSameDay(date,state.selectedDate)?"selected":"",
 			 tasksFor(date).length?"has-tasks":""]
 			 .filter(Boolean).join(" ");
 		 el.textContent = date.getDate();
 		 el.addEventListener("click", () => {
-			 S.sel = date;
-			 S.cur = new Date(date.getFullYear(), date.getMonth(), 1);
+			 state.selectedDate = date;
+			 state.currentDate = new Date(date.getFullYear(), date.getMonth(), 1);
 			 render(); openModal(date);
 		 });
-		 D.miniGrid.appendChild(el);
+		 ui.miniGrid.appendChild(el);
 	 }
 	 
 	 /* ══════════════════════════════════════════════════
@@ -315,7 +315,7 @@
 	 function renderUpcoming() {
 		 const now = today();
 		 const end = new Date(now); end.setDate(now.getDate()+7);
-		 const list = S.tasks
+		 const list = state.tasks
 			 .filter(t => {
 				 if (t.completed) return false;
 				 const dl = parseDL(t);
@@ -324,32 +324,32 @@
 			 .sort((a,b) => parseDL(a)-parseDL(b))
 			 .slice(0,8);
 	 
-		 D.upList.innerHTML = "";
+		 ui.upList.innerHTML = "";
 		 if (!list.length) {
-			 D.upList.innerHTML = `<span class="empty-msg">Sin vencimientos esta semana 🌿</span>`;
+			 ui.upList.innerHTML = `<span class="empty-msg">Sin vencimientos esta semana 🌿</span>`;
 			 return;
 		 }
 		 list.forEach(t => {
-			 const d   = daysUntil(t);
-			 const txt = d===0?"Hoy":d===1?"Mañana":`${d}d`;
-			 const cls = d===0?"badge-today":d<=2?"badge-soon":"badge-normal";
-			 const col = {HIGH:"rgba(255,100,100,.75)",MID:"rgba(251,191,36,.75)",LOW:"rgba(61,220,132,.75)"}[t.priority]||"rgba(251,191,36,.75)";
+			 const daysLeft   = daysUntil(t);
+			 const badgeText = daysLeft===0?"Hoy":daysLeft===1?"Mañana":`${daysLeft}d`;
+			 const badgeClass = daysLeft===0?"badge-today":daysLeft<=2?"badge-soon":"badge-normal";
+			 const priorityColor = {HIGH:"rgba(255,100,100,.75)",MID:"rgba(251,191,36,.75)",LOW:"rgba(61,220,132,.75)"}[t.priority]||"rgba(251,191,36,.75)";
 			 const el  = document.createElement("div");
 			 el.className = "up-item";
 			 el.innerHTML = `
-				 <span class="up-bar" style="background:${col}"></span>
+				 <span class="up-bar" style="background:${priorityColor}"></span>
 				 <div class="up-info">
 					 <span class="up-title">${esc(t.title)}</span>
 					 <span class="up-proj">${esc(t._pName||"")}</span>
 				 </div>
-				 <span class="up-badge ${cls}">${txt}</span>`;
+				 <span class="up-badge ${badgeClass}">${badgeText}</span>`;
 			 el.addEventListener("click", () => {
 				 const dl = parseDL(t);
 				 if (!dl) return;
-				 S.sel = dl; S.cur = new Date(dl.getFullYear(), dl.getMonth(), 1);
+				 state.selectedDate = dl; state.currentDate = new Date(dl.getFullYear(), dl.getMonth(), 1);
 				 render(); openModal(dl);
 			 });
-			 D.upList.appendChild(el);
+			 ui.upList.appendChild(el);
 		 });
 	 }
 	 
@@ -357,57 +357,57 @@
 			MODAL DÍA
 	 ══════════════════════════════════════════════════ */
 	 function openModal(date) {
-		 S.sel    = date;
-		 S.mTasks = tasksFor(date);
-		 S.mFilter = "all";
-		 D.mFilters.querySelectorAll(".mf").forEach(b => b.classList.toggle("active", b.dataset.filter==="all"));
-		 D.mDate.textContent = formatFull(date);
+		 state.selectedDate    = date;
+		 state.modalTasks = tasksFor(date);
+		 state.modalFilter = "all";
+		 ui.mFilters.querySelectorAll(".mf").forEach(b => b.classList.toggle("active", b.dataset.filter==="all"));
+		 ui.mDate.textContent = formatFull(date);
 		 renderModalStats();
 		 renderModalTasks();
-		 D.mOverlay.classList.add("open");
+		 ui.mOverlay.classList.add("open");
 	 }
 	 
 	 function renderModalStats() {
 		 const now = today();
-		 const c   = {HIGH:0,MID:0,LOW:0,done:0,exp:0};
-		 S.mTasks.forEach(t => {
-			 if (t.completed){c.done++;return;}
+		 const counts   = {HIGH:0,MID:0,LOW:0,done:0,exp:0};
+		 state.modalTasks.forEach(t => {
+			 if (t.completed){counts.done++;return;}
 			 const dl=parseDL(t);
-			 if (dl&&dl<now){c.exp++;return;}
-			 c[t.priority||"MID"]++;
+			 if (dl&&dl<now){counts.exp++;return;}
+			 counts[t.priority||"MID"]++;
 		 });
-		 D.mStats.innerHTML = [
-			 c.HIGH?`<span class="mds-chip mds-high">${c.HIGH}↑</span>`:"",
-			 c.MID ?`<span class="mds-chip mds-mid">${c.MID}—</span>`:"",
-			 c.LOW ?`<span class="mds-chip mds-low">${c.LOW}↓</span>`:"",
-			 c.done?`<span class="mds-chip mds-done">${c.done}✓</span>`:"",
-			 c.exp ?`<span class="mds-chip mds-exp">${c.exp}!</span>`:"",
+		 ui.mStats.innerHTML = [
+			 counts.HIGH?`<span class="mds-chip mds-high">${counts.HIGH}↑</span>`:"",
+			 counts.MID ?`<span class="mds-chip mds-mid">${counts.MID}—</span>`:"",
+			 counts.LOW ?`<span class="mds-chip mds-low">${counts.LOW}↓</span>`:"",
+			 counts.done?`<span class="mds-chip mds-done">${counts.done}✓</span>`:"",
+			 counts.exp ?`<span class="mds-chip mds-exp">${counts.exp}!</span>`:"",
 		 ].join("");
 	 }
 	 
 	 function renderModalTasks() {
-		 const f = S.mFilter;
-		 const list = S.mTasks.filter(t =>
-			 f==="all" ? true : f==="completed" ? t.completed : !t.completed
+		 const filter = state.modalFilter;
+		 const list = state.modalTasks.filter(t =>
+			 filter==="all" ? true : filter==="completed" ? t.completed : !t.completed
 		 );
-		 D.mList.innerHTML = "";
+		 ui.mList.innerHTML = "";
 		 if (!list.length) {
-			 D.mList.innerHTML = `<div class="m-empty"><span class="m-empty-icon">📭</span>Sin tareas aquí</div>`;
+			 ui.mList.innerHTML = `<div class="m-empty"><span class="m-empty-icon">📭</span>Sin tareas aquí</div>`;
 			 return;
 		 }
 		 list.forEach(t => {
 			 const st   = tState(t);
-			 const tCls = st==="done"?"t-done":st==="exp"?"t-exp":"t-"+(t.priority||"MID");
-			 const pt   = prioTag(t.priority, st);
+			 const taskClass = st==="done"?"t-done":st==="exp"?"t-exp":"t-"+(t.priority||"MID");
+			 const priorityTag   = prioTag(t.priority, st);
 			 const el   = document.createElement("div");
-			 el.className = `m-task ${tCls}`;
+			 el.className = `m-task ${taskClass}`;
 			 el.innerHTML = `
 				 <div class="m-bar"></div>
 				 <div class="m-body">
 					 <div class="m-title">${esc(t.title)}</div>
 					 ${t.description?`<div class="m-desc">${esc(t.description)}</div>`:""}
 					 <div class="m-meta">
-						 <span class="m-tag ${pt.cls}">${pt.lbl}</span>
+						 <span class="m-tag ${priorityTag.cls}">${priorityTag.lbl}</span>
 						 ${t._pName?`<span class="m-tag tag-proj">${esc(t._pName)}</span>`:""}
 					 </div>
 				 </div>
@@ -422,17 +422,17 @@
 				 if (ok) {
 					 toast(t.completed?"Tarea completada ✓":"Tarea reabierta","ok");
 					 renderUpcoming();
-					 S.view==="month"?renderMonth():renderWeek();
+					 state.view==="month"?renderMonth():renderWeek();
 					 renderMiniCal();
 					 renderModalStats();
 					 renderModalTasks();
 				 }
 			 });
-			 D.mList.appendChild(el);
+			 ui.mList.appendChild(el);
 		 });
 	 }
 	 
-	 function closeModal() { D.mOverlay.classList.remove("open"); }
+	 function closeModal() { ui.mOverlay.classList.remove("open"); }
 	 
 	 /* ══════════════════════════════════════════════════
 			PICKER
@@ -442,50 +442,50 @@
 	 
 	 function openPicker() {
 		 // Guardar estado previo para poder cancelar
-		 S.pyear  = S.cur.getFullYear();
-		 S.pmonth = S.cur.getMonth();
-		 D.pyInput.value = S.pyear;
+		 state.pickerYear  = state.currentDate.getFullYear();
+		 state.pickerMonth = state.currentDate.getMonth();
+		 ui.pyInput.value = state.pickerYear;
 		 renderPickerMonths();
-		 D.pickerBd.classList.add("open");
-		 setTimeout(() => D.pyInput.focus(), 80);
+		 ui.pickerBd.classList.add("open");
+		 setTimeout(() => ui.pyInput.focus(), 80);
 	 }
 	 
 	 function closePicker() {
-		 D.pickerBd.classList.remove("open");
+		 ui.pickerBd.classList.remove("open");
 	 }
 	 
 	 function applyPicker() {
-		 if (S.pmonth === null) return;
-		 S.cur = new Date(S.pyear, S.pmonth, 1);
+		 if (state.pickerMonth === null) return;
+		 state.currentDate = new Date(state.pickerYear, state.pickerMonth, 1);
 		 closePicker();
 		 render();
 	 }
 	 
 	 function renderPickerMonths() {
-		 D.pyInput.value = S.pyear;
-		 D.pickerMos.innerHTML = "";
-		 const nY = new Date().getFullYear(), nM = new Date().getMonth();
+		 ui.pyInput.value = state.pickerYear;
+		 ui.pickerMos.innerHTML = "";
+		 const todayYear = new Date().getFullYear(), todayMonth = new Date().getMonth();
 		 MES_S.forEach((m,i) => {
 			 const btn = document.createElement("button");
 			 btn.className   = "pm-btn";
 			 btn.title       = MES_F[i];
 			 btn.textContent = m;
 			 // Mes de hoy real
-			 if (S.pyear===nY && i===nM) btn.classList.add("is-today");
+			 if (state.pickerYear===todayYear && i===todayMonth) btn.classList.add("is-today");
 			 // Mes actualmente en el calendario (origen)
-			 if (S.pyear===S.cur.getFullYear() && i===S.cur.getMonth()) btn.classList.add("is-origin");
+			 if (state.pickerYear===state.currentDate.getFullYear() && i===state.currentDate.getMonth()) btn.classList.add("is-origin");
 			 // Mes seleccionado pendiente de aplicar
-			 if (S.pyear===S.pyear && i===S.pmonth && S.pyear===S.pyear) {
-				 if (S.pmonth === i) btn.classList.add("is-active");
+			 if (state.pickerYear===state.pickerYear && i===state.pickerMonth && state.pickerYear===state.pickerYear) {
+				 if (state.pickerMonth === i) btn.classList.add("is-active");
 			 }
 			 btn.addEventListener("click", () => {
-				 S.pmonth = i;
-				 D.pickerMos.querySelectorAll(".pm-btn").forEach(b => b.classList.remove("is-active"));
+				 state.pickerMonth = i;
+				 ui.pickerMos.querySelectorAll(".pm-btn").forEach(b => b.classList.remove("is-active"));
 				 btn.classList.add("is-active");
 			 });
 			 // Doble clic aplica directamente
 			 btn.addEventListener("dblclick", applyPicker);
-			 D.pickerMos.appendChild(btn);
+			 ui.pickerMos.appendChild(btn);
 		 });
 	 }
 	 
@@ -493,100 +493,100 @@
 			BÚSQUEDA
 	 ══════════════════════════════════════════════════ */
 	 function doSearch(q) {
-		 if (!q || q.length<2) { D.sResults.classList.remove("open"); return; }
-		 const lo   = q.toLowerCase();
-		 const hits = S.tasks.filter(t =>
-			 t.title.toLowerCase().includes(lo)||(t.description||"").toLowerCase().includes(lo)
+		 if (!q || q.length<2) { ui.sResults.classList.remove("open"); return; }
+		 const queryLower   = q.toLowerCase();
+		 const searchResults = state.tasks.filter(t =>
+			 t.title.toLowerCase().includes(queryLower)||(t.description||"").toLowerCase().includes(queryLower)
 		 ).slice(0,7);
 	 
-		 D.sResults.innerHTML = "";
-		 if (!hits.length) {
-			 D.sResults.innerHTML = `<div class="sr-item"><span class="sr-title" style="color:var(--color-text-muted)">Sin resultados</span></div>`;
-			 D.sResults.classList.add("open"); return;
+		 ui.sResults.innerHTML = "";
+		 if (!searchResults.length) {
+			 ui.sResults.innerHTML = `<div class="sr-item"><span class="sr-title" style="color:var(--color-text-muted)">Sin resultados</span></div>`;
+			 ui.sResults.classList.add("open"); return;
 		 }
-		 const PC = {HIGH:"#ff6464",MID:"#fbbf24",LOW:"#3ddc84"};
-		 hits.forEach(t => {
+		 const PRIORITY_COLORS = {HIGH:"#ff6464",MID:"#fbbf24",LOW:"#3ddc84"};
+		 searchResults.forEach(t => {
 			 const dl = parseDL(t);
 			 const el = document.createElement("div");
 			 el.className = "sr-item";
 			 el.innerHTML = `
-				 <span class="sr-dot" style="background:${PC[t.priority]||"#fbbf24"}"></span>
+				 <span class="sr-dot" style="background:${PRIORITY_COLORS[t.priority]||"#fbbf24"}"></span>
 				 <span class="sr-title">${esc(t.title)}</span>
 				 ${dl?`<span class="sr-date">${fmtShort(dl)}</span>`:""}`;
 			 el.addEventListener("click", () => {
 				 if (!dl) return;
-				 S.sel=dl; S.cur=new Date(dl.getFullYear(),dl.getMonth(),1);
-				 D.search.value=""; D.sResults.classList.remove("open");
+				 state.selectedDate=dl; state.currentDate=new Date(dl.getFullYear(),dl.getMonth(),1);
+				 ui.search.value=""; ui.sResults.classList.remove("open");
 				 render(); openModal(dl);
 			 });
-			 D.sResults.appendChild(el);
+			 ui.sResults.appendChild(el);
 		 });
-		 D.sResults.classList.add("open");
+		 ui.sResults.classList.add("open");
 	 }
 	 
 	 /* ══════════════════════════════════════════════════
 			EVENTOS
 	 ══════════════════════════════════════════════════ */
 	 function bindEvents() {
-		 D.prev.addEventListener("click",     () => navigate(-1));
-		 D.next.addEventListener("click",     () => navigate(+1));
-		 D.btnToday.addEventListener("click", goToday);
-		 D.miniPrev.addEventListener("click", () => navigate(-1));
-		 D.miniNext.addEventListener("click", () => navigate(+1));
-		 D.miniLblBtn.addEventListener("click", openPicker);
-		 D.titleBtn.addEventListener("click",   openPicker);
-		 D.pickerBd.addEventListener("click",   e => { if(e.target===D.pickerBd) closePicker(); });
-		 D.pickerClose.addEventListener("click",  closePicker);
-		 D.pickerCancel.addEventListener("click", closePicker);
-		 D.pickerToday.addEventListener("click", () => {
+		 ui.prev.addEventListener("click",     () => navigate(-1));
+		 ui.next.addEventListener("click",     () => navigate(+1));
+		 ui.btnToday.addEventListener("click", goToday);
+		 ui.miniPrev.addEventListener("click", () => navigate(-1));
+		 ui.miniNext.addEventListener("click", () => navigate(+1));
+		 ui.miniLblBtn.addEventListener("click", openPicker);
+		 ui.titleBtn.addEventListener("click",   openPicker);
+		 ui.pickerBd.addEventListener("click",   e => { if(e.target===ui.pickerBd) closePicker(); });
+		 ui.pickerClose.addEventListener("click",  closePicker);
+		 ui.pickerCancel.addEventListener("click", closePicker);
+		 ui.pickerToday.addEventListener("click", () => {
 			 const n = new Date();
-			 S.pyear  = n.getFullYear();
-			 S.pmonth = n.getMonth();
+			 state.pickerYear  = n.getFullYear();
+			 state.pickerMonth = n.getMonth();
 			 applyPicker();
 		 });
-		 D.pickerApply.addEventListener("click",  applyPicker);
+		 ui.pickerApply.addEventListener("click",  applyPicker);
 		 // Enter en cualquier punto del picker aplica
-		 D.pickerBd.addEventListener("keydown", e => {
+		 ui.pickerBd.addEventListener("keydown", e => {
 			 if (e.key === "Enter") { e.preventDefault(); applyPicker(); }
 		 });
-		 D.pyPrev.addEventListener("click", () => { S.pyear--; renderPickerMonths(); });
-		 D.pyNext.addEventListener("click", () => { S.pyear++; renderPickerMonths(); });
-		 D.pyInput.addEventListener("input", () => {
-			 const y = parseInt(D.pyInput.value, 10);
-			 if (y>=2000 && y<=2099) { S.pyear=y; renderPickerMonths(); }
+		 ui.pyPrev.addEventListener("click", () => { state.pickerYear--; renderPickerMonths(); });
+		 ui.pyNext.addEventListener("click", () => { state.pickerYear++; renderPickerMonths(); });
+		 ui.pyInput.addEventListener("input", () => {
+			 const y = parseInt(ui.pyInput.value, 10);
+			 if (y>=2000 && y<=2099) { state.pickerYear=y; renderPickerMonths(); }
 		 });
-		 D.pyInput.addEventListener("keydown", e => {
+		 ui.pyInput.addEventListener("keydown", e => {
 			 if (e.key==="Enter")     { applyPicker(); }
 			 if (e.key==="Escape")    { closePicker(); }
-			 if (e.key==="ArrowUp")   { e.preventDefault(); S.pyear++; renderPickerMonths(); }
-			 if (e.key==="ArrowDown") { e.preventDefault(); S.pyear--; renderPickerMonths(); }
+			 if (e.key==="ArrowUp")   { e.preventDefault(); state.pickerYear++; renderPickerMonths(); }
+			 if (e.key==="ArrowDown") { e.preventDefault(); state.pickerYear--; renderPickerMonths(); }
 		 });
-		 D.vMonth.addEventListener("click", () => setView("month"));
-		 D.vWeek.addEventListener("click",  () => setView("week"));
-		 D.projSel.addEventListener("change", async () => {
-			 S.projId = D.projSel.value;
+		 ui.vMonth.addEventListener("click", () => setView("month"));
+		 ui.vWeek.addEventListener("click",  () => setView("week"));
+		 ui.projSel.addEventListener("change", async () => {
+			 state.projectId = ui.projSel.value;
 			 await loadTasks(); render();
 		 });
-		 D.mClose.addEventListener("click", closeModal);
-		 D.mOverlay.addEventListener("click", e => { if(e.target===D.mOverlay) closeModal(); });
-		 D.addBtn.addEventListener("click", () => toast("Próximamente: crear tarea 🚀","ok"));
-		 D.mFilters.addEventListener("click", e => {
+		 ui.mClose.addEventListener("click", closeModal);
+		 ui.mOverlay.addEventListener("click", e => { if(e.target===ui.mOverlay) closeModal(); });
+		 ui.addBtn.addEventListener("click", () => toast("Próximamente: crear tarea 🚀","ok"));
+		 ui.mFilters.addEventListener("click", e => {
 			 const b = e.target.closest(".mf");
 			 if (!b) return;
-			 D.mFilters.querySelectorAll(".mf").forEach(x => x.classList.remove("active"));
+			 ui.mFilters.querySelectorAll(".mf").forEach(x => x.classList.remove("active"));
 			 b.classList.add("active");
-			 S.mFilter = b.dataset.filter;
+			 state.modalFilter = b.dataset.filter;
 			 renderModalTasks();
 		 });
-		 D.search.addEventListener("input", () => doSearch(D.search.value.trim()));
-		 D.search.addEventListener("blur",  () => setTimeout(() => D.sResults.classList.remove("open"), 180));
+		 ui.search.addEventListener("input", () => doSearch(ui.search.value.trim()));
+		 ui.search.addEventListener("blur",  () => setTimeout(() => ui.sResults.classList.remove("open"), 180));
 	 
 		 document.addEventListener("keydown", e => {
 			 const tag    = document.activeElement?.tagName?.toUpperCase();
 			 const typing = tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA";
 			 if (e.key==="Escape") {
-				 if (D.mOverlay.classList.contains("open"))  { closeModal();  return; }
-				 if (D.pickerBd.classList.contains("open"))  { closePicker(); return; }
+				 if (ui.mOverlay.classList.contains("open"))  { closeModal();  return; }
+				 if (ui.pickerBd.classList.contains("open"))  { closePicker(); return; }
 			 }
 			 if (typing) return;
 			 switch(e.key) {
@@ -594,9 +594,9 @@
 				 case "ArrowRight":            navigate(+1);     break;
 				 case "t": case "T":           goToday();        break;
 				 case "m": case "M":           setView("month"); break;
-				 case "s": case "S":           setView("week");  break;
+				 case "s": case "state":           setView("week");  break;
 				 case "g": case "G":           openPicker();     break;
-				 case "/": e.preventDefault(); D.search.focus(); break;
+				 case "/": e.preventDefault(); ui.search.focus(); break;
 			 }
 		 });
 	 }
@@ -605,49 +605,49 @@
 			NAVEGACIÓN
 	 ══════════════════════════════════════════════════ */
 	 function navigate(delta) {
-		 if (S.view==="month") {
-			 S.cur = new Date(S.cur.getFullYear(), S.cur.getMonth()+delta, 1);
+		 if (state.view==="month") {
+			 state.currentDate = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth()+delta, 1);
 		 } else {
-			 const a = S.sel ? new Date(S.sel) : new Date();
-			 a.setDate(a.getDate()+delta*7);
-			 S.sel = new Date(a);
+			 const anchorDate = state.selectedDate ? new Date(state.selectedDate) : new Date();
+			 anchorDate.setDate(anchorDate.getDate()+delta*7);
+			 state.selectedDate = new Date(anchorDate);
 		 }
 		 render();
 	 }
 	 
 	 function goToday() {
 		 const n = new Date();
-		 S.cur = new Date(n.getFullYear(), n.getMonth(), 1);
-		 S.sel = n;
-		 if (S.view!=="month") setView("month"); else render();
+		 state.currentDate = new Date(n.getFullYear(), n.getMonth(), 1);
+		 state.selectedDate = n;
+		 if (state.view!=="month") setView("month"); else render();
 	 }
 	 
 	 function setView(v) {
-		 S.view = v;
-		 D.vMonth.classList.toggle("active", v==="month");
-		 D.vWeek.classList.toggle("active",  v==="week");
+		 state.view = v;
+		 ui.vMonth.classList.toggle("active", v==="month");
+		 ui.vWeek.classList.toggle("active",  v==="week");
 		 render();
 	 }
 	 
 	 function fillProjectSelect() {
-		 D.projSel.innerHTML = `<option value="">Todos los proyectos</option>`;
-		 S.projects.forEach(p => {
+		 ui.projSel.innerHTML = `<option value="">Todos los proyectos</option>`;
+		 state.projects.forEach(p => {
 			 const o = document.createElement("option");
 			 o.value=p.id; o.textContent=p.name;
-			 D.projSel.appendChild(o);
+			 ui.projSel.appendChild(o);
 		 });
 	 }
 	 
 	 function setLoading(on) {
-		 D.loading.classList.toggle("on", on);
-		 D.grid.style.opacity = on ? ".4" : "1";
+		 ui.loading.classList.toggle("on", on);
+		 ui.grid.style.opacity = on ? ".4" : "1";
 	 }
 	 
 	 function toast(msg, type="ok") {
 		 const el = document.createElement("div");
 		 el.className = `toast ${type}`;
 		 el.innerHTML = `<span class="toast-dot"></span>${esc(msg)}`;
-		 D.toasts.appendChild(el);
+		 ui.toasts.appendChild(el);
 		 setTimeout(() => {
 			 el.classList.add("out");
 			 el.addEventListener("animationend", () => el.remove(), {once:true});
@@ -657,7 +657,7 @@
 	 /* ══════════════════════════════════════════════════
 			UTILS
 	 ══════════════════════════════════════════════════ */
-	 function tasksFor(d)   { const s=dateStr(d); return S.tasks.filter(t=>{const dl=t.dateDeadline||t.dueDate; return dl&&dl.substring(0,10)===s;}); }
+	 function tasksFor(d)   { const s=dateStr(d); return state.tasks.filter(t=>{const dl=t.dateDeadline||t.dueDate; return dl&&dl.substring(0,10)===s;}); }
 	 function parseDL(t)    { const s=t.dateDeadline||t.dueDate; if(!s)return null; const[y,m,d]=s.substring(0,10).split("-").map(Number); return new Date(y,m-1,d); }
 	 function today()       { const d=new Date(); d.setHours(0,0,0,0); return d; }
 	 function dateStr(d)    { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
