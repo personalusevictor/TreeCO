@@ -6,6 +6,9 @@ import com.treeco.api.model.User;
 import com.treeco.api.model.enums.State;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.UserRepository;
+import com.treeco.api.repository.ProjectMemberRepository;
+import com.treeco.api.model.ProjectMember;
+import com.treeco.api.model.enums.ProjectRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +20,14 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectService(ProjectRepository projectRepository,
+                          UserRepository userRepository,
+                          ProjectMemberRepository projectMemberRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.projectMemberRepository = projectMemberRepository;
     }
 
     // ── CONSULTAS ─────────────────────────────────────────────────────
@@ -83,7 +90,13 @@ public class ProjectService {
 
         Project project = new Project(name, description);
         project.setUser(user);
-        return projectRepository.save(project);
+        projectRepository.save(project);
+
+        // El creador es automáticamente miembro OWNER
+        ProjectMember owner = new ProjectMember(project, user, ProjectRole.OWNER);
+        projectMemberRepository.save(owner);
+
+        return project;
     }
 
     /**

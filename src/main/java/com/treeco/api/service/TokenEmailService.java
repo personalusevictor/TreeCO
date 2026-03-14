@@ -5,8 +5,12 @@ import com.treeco.api.model.VerificationToken;
 import com.treeco.api.model.VerificationToken.TokenType;
 import com.treeco.api.repository.UserRepository;
 import com.treeco.api.repository.VerificationTokenRepository;
-import org.springframework.mail.SimpleMailMessage;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,33 +22,35 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Servicio unificado para los dos flujos de verificación por código:
  *
- *   1. REGISTRO: los datos del usuario se guardan temporalmente en memoria
- *      hasta que el código es confirmado. Solo entonces se crea la cuenta.
+ * 1. REGISTRO: los datos del usuario se guardan temporalmente en memoria
+ * hasta que el código es confirmado. Solo entonces se crea la cuenta.
  *
- *   2. RESET DE CONTRASEÑA: flujo estándar con token en BD.
+ * 2. RESET DE CONTRASEÑA: flujo estándar con token en BD.
  */
 @Service
 public class TokenEmailService {
 
-    //  Hay que cambiar FROM_ADRESS por el correo una vez lo tengamos Raul (debe coincidir con spring.mail.username)
-    private static final String FROM_ADDRESS = "";
+    // Hay que cambiar FROM_ADRESS por el correo una vez lo tengamos Raul (debe
+    // coincidir con spring.mail.username)
+    private static final String FROM_ADDRESS = "treeco.support@gmail.com";
 
     /**
      * Almacén temporal de registros pendientes de verificar.
-     * Clave: email (lowercase). Valor: datos del registro + timestamp para expiración.
+     * Clave: email (lowercase). Valor: datos del registro + timestamp para
+     * expiración.
      */
     private final Map<String, PendingRegistration> pendingRegistrations = new ConcurrentHashMap<>();
 
     private final VerificationTokenRepository tokenRepository;
-    private final UserRepository              userRepository;
-    private final JavaMailSender              mailSender;
+    private final UserRepository userRepository;
+    private final JavaMailSender mailSender;
 
     public TokenEmailService(VerificationTokenRepository tokenRepository,
-                             UserRepository userRepository,
-                             JavaMailSender mailSender) {
+            UserRepository userRepository,
+            JavaMailSender mailSender) {
         this.tokenRepository = tokenRepository;
-        this.userRepository  = userRepository;
-        this.mailSender      = mailSender;
+        this.userRepository = userRepository;
+        this.mailSender = mailSender;
     }
 
     // ════════════════════════════════════════════
@@ -64,25 +70,58 @@ public class TokenEmailService {
             throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres");
 
         String emailKey = email.toLowerCase();
-        String code     = generateCode();
+        String code = generateCode();
 
         // Guardamos en memoria: si ya existía un intento previo, lo sobreescribimos
         pendingRegistrations.put(emailKey, new PendingRegistration(username.trim(), email, password, code));
 
         // Enviar email
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(FROM_ADDRESS);
-        msg.setTo(email);
-        msg.setSubject("🌿 TreeCO — Verifica tu cuenta");
-        msg.setText(
-            "Hola " + username.trim() + ",\n\n" +
-            "Tu código de verificación para crear tu cuenta en TreeCO es:\n\n" +
-            "    " + code + "\n\n" +
-            "El código es válido durante 10 minutos.\n\n" +
-            "Si no has solicitado esto, ignora este mensaje.\n\n" +
-            "— El equipo de TreeCO"
-        );
-        mailSender.send(msg);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(FROM_ADDRESS);
+            helper.setTo(email);
+            helper.setSubject("Código de verificación - 🌿 TreeCO");
+
+            String html = """
+                    <html>
+                    <head>
+                    		<link rel="preconnect" href="https://fonts.googleapis.com">
+                    		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    		<link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&family=Sora:wght@100..800&display=swap" rel="stylesheet">
+                    </head>
+                    <body style="padding:20px;font-family: "Sora", sans-serif;background: radial-gradient(ellipse 80% 60% at 20% 80%, rgba(20, 60, 35, 0.55) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(15, 45, 28, 0.45) 0%, transparent 60%), #050a08;">
+                        <div style="max-width:500px;margin:auto;background:white;padding:30px;border-radius:8px;">
+
+                            <h2 style="color:rgba(255, 255, 255, 0.92); font-size: 1.55rem">Tree<span style="color: #3ddc84;">CO</span></h2>
+
+                            <p>Estimado/a %s,</p>
+
+                            <p>Hemos recibido una solicitud para generar un nuevo código de verificación.</p>
+
+                            <div style="font-size:28px;font-weight:bold;letter-spacing:5px;margin:20px 0;">
+                                %s
+                            </div>
+
+                            <p>Este código expirará en 10 minutos.</p>
+
+                            <p style="color:#777;">Si no solicitaste este código, puedes ignorar este mensaje.</p>
+
+                            <br>
+                            <p>Atentamente,<br>Equipo de TreeCO</p>
+
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    .formatted(username.trim(), code);
+
+            helper.setText(html, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            System.out.println(e);
+        }
     }
 
     /**
@@ -97,7 +136,8 @@ public class TokenEmailService {
         PendingRegistration pending = pendingRegistrations.get(emailKey);
 
         if (pending == null) {
-            throw new IllegalArgumentException("No hay ningún registro pendiente para este email. Vuelve a introducir tus datos.");
+            throw new IllegalArgumentException(
+                    "No hay ningún registro pendiente para este email. Vuelve a introducir tus datos.");
         }
         if (pending.isExpired()) {
             pendingRegistrations.remove(emailKey);
@@ -116,6 +156,7 @@ public class TokenEmailService {
         }
 
         User newUser = new User(pending.username(), pending.email(), pending.rawPassword());
+        newUser.setEmailVerified(true);
         userRepository.save(newUser);
         pendingRegistrations.remove(emailKey);
 
@@ -123,7 +164,8 @@ public class TokenEmailService {
     }
 
     /**
-     * Reenvía el código de registro (genera uno nuevo, mantiene los datos del usuario).
+     * Reenvía el código de registro (genera uno nuevo, mantiene los datos del
+     * usuario).
      *
      * @throws IllegalArgumentException si no hay registro pendiente para ese email
      */
@@ -138,21 +180,51 @@ public class TokenEmailService {
 
         String newCode = generateCode();
         pendingRegistrations.put(emailKey, new PendingRegistration(
-            pending.username(), pending.email(), pending.rawPassword(), newCode
-        ));
+                pending.username(), pending.email(), pending.rawPassword(), newCode));
 
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(FROM_ADDRESS);
-        msg.setTo(email);
-        msg.setSubject("🌿 TreeCO — Tu nuevo código de verificación");
-        msg.setText(
-            "Hola " + pending.username() + ",\n\n" +
-            "Tu nuevo código de verificación es:\n\n" +
-            "    " + newCode + "\n\n" +
-            "El código es válido durante 10 minutos.\n\n" +
-            "— El equipo de TreeCO"
-        );
-        mailSender.send(msg);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(FROM_ADDRESS);
+            helper.setTo(email);
+            helper.setSubject("Código de verificación - 🌿 TreeCO");
+
+            String html = """
+                    <html>
+                    <body style="padding:20px; font-family: "Sora", sans-serif;background: radial-gradient(ellipse 80% 60% at 20% 80%, rgba(20, 60, 35, 0.55) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(15, 45, 28, 0.45) 0%, transparent 60%), #050a08;">
+                        <div style="max-width:500px;margin:auto;background:white;padding:30px;border-radius:8px;">
+
+                            <h2 style="color:rgba(255, 255, 255, 0.92); font-size: 2rem">Tree<span style="color: #3ddc84;">CO</span></h2>
+
+                            <p>Estimado/a %s,</p>
+
+                            <p>Hemos recibido una solicitud para generar un nuevo código de verificación.</p>
+
+                            <div style="font-size:28px;font-weight:bold;letter-spacing:5px;margin:20px 0;">
+                                %s
+                            </div>
+
+                            <p>Este código expirará en 10 minutos.</p>
+
+                            <p style="color:#777;">Si no solicitaste este código, puedes ignorar este mensaje.</p>
+
+                            <br>
+                            <p>Atentamente,<br>Equipo de TreeCO</p>
+
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    .formatted(pending.username(), newCode);
+
+            helper.setText(html, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            System.out.println(e);
+        }
+
     }
 
     // ════════════════════════════════════════════
@@ -168,23 +240,81 @@ public class TokenEmailService {
         userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
             tokenRepository.invalidatePreviousTokens(user.getId(), TokenType.PASSWORD_RESET);
 
-            String code  = generateCode();
+            String code = generateCode();
             VerificationToken token = new VerificationToken(code, user, TokenType.PASSWORD_RESET);
             tokenRepository.save(token);
 
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(FROM_ADDRESS);
-            msg.setTo(user.getEmail());
-            msg.setSubject("🔑 TreeCO — Restablece tu contraseña");
-            msg.setText(
-                "Hola " + user.getUsername() + ",\n\n" +
-                "Tu código para restablecer la contraseña es:\n\n" +
-                "    " + code + "\n\n" +
-                "Este código es válido durante 10 minutos y solo puede usarse una vez.\n\n" +
-                "Si no has solicitado este cambio, ignora este mensaje.\n\n" +
-                "— El equipo de TreeCO"
-            );
-            mailSender.send(msg);
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(FROM_ADDRESS);
+                helper.setTo(email);
+                helper.setSubject("🔑 TreeCO — Restablece tu contraseña");
+
+                String html = """
+                        <html>
+                        	<body style="margin:0;padding:0;font-family: "Sora", sans-serif;background: radial-gradient(ellipse 80% 60% at 20% 80%, rgba(20, 60, 35, 0.55) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 20%, rgba(15, 45, 28, 0.45) 0%, transparent 60%), #050a08;">
+
+                        	  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+                        	    <tr>
+                        	      <td align="center">
+
+                        	        <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+                        	          <tr>
+                        	            <td align="center" style="padding-bottom:20px;">
+                        	              <h2 style="margin:0;color:#2c7a4b;">TreeCO</h2>
+                        	            </td>
+                        	          </tr>
+
+                        	          <tr>
+                        	            <td style="color:#333;font-size:16px;">
+                        	              Hola <strong>%s</strong>,
+                        	              <br><br>
+                        	              Hemos recibido una solicitud para restablecer tu contraseña.
+                        	              <br><br>
+                        	              Utiliza el siguiente código de verificación:
+                        	            </td>
+                        	          </tr>
+
+                        	          <tr>
+                        	            <td align="center" style="padding:30px 0;">
+                        	              <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2c7a4b;">
+                        	                %s
+                        	              </div>
+                        	            </td>
+                        	          </tr>
+
+                        	          <tr>
+                        	            <td style="color:#555;font-size:14px;line-height:1.6;">
+                        	              Este código es válido durante <strong>10 minutos</strong> y solo puede utilizarse una vez.
+                        	              <br><br>
+                        	              Si no solicitaste este cambio, puedes ignorar este mensaje.
+                        	            </td>
+                        	          </tr>
+
+                        	          <tr>
+                        	            <td style="padding-top:30px;color:#888;font-size:13px;">
+                        	              — El equipo de TreeCO
+                        	            </td>
+                        	          </tr>
+
+                        	        </table>
+
+                        	      </td>
+                        	    </tr>
+                        	  </table>
+
+                        	</body>
+                        </html>"""
+                        .formatted(user.getUsername(), code);
+
+                helper.setText(html, true);
+
+                mailSender.send(message);
+            } catch (MessagingException e) {
+                System.out.println(e);
+            }
         });
     }
 
@@ -246,12 +376,11 @@ public class TokenEmailService {
      * Expira 10 minutos después de su creación.
      */
     private record PendingRegistration(
-        String username,
-        String email,
-        String rawPassword,   // contraseña en texto plano — se hashea al crear la cuenta
-        String code,
-        LocalDateTime createdAt
-    ) {
+            String username,
+            String email,
+            String rawPassword, // contraseña en texto plano — se hashea al crear la cuenta
+            String code,
+            LocalDateTime createdAt) {
         PendingRegistration(String username, String email, String rawPassword, String code) {
             this(username, email, rawPassword, code, LocalDateTime.now());
         }

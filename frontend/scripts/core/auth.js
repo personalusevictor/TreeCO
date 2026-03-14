@@ -79,7 +79,6 @@ function updateOverlayContent(mode) {
   const overlayBtn = document.getElementById("overlay-btn")
 
   if (mode === "login") {
-    // Overlay is on the RIGHT (covers register panel) → CTA to go to register
     overlayEyebrow.textContent = "¿Primera vez?"
     overlayTitle.textContent = "Empieza a crecer"
     overlayDesc.textContent = "Crea una cuenta y gestiona tus proyectos con TreeCO."
@@ -87,7 +86,6 @@ function updateOverlayContent(mode) {
     overlayBtn.querySelector(".btn-label").textContent = "Crear cuenta"
     overlayBtn.onclick = () => setMode("register")
   } else {
-    // Overlay is on the LEFT (covers login panel) → CTA to go to login
     overlayEyebrow.textContent = "¿Ya tienes cuenta?"
     overlayTitle.textContent = "Bienvenido de nuevo"
     overlayDesc.textContent = "Accede a tus proyectos y tareas donde lo dejaste."
@@ -180,7 +178,6 @@ formLogin.addEventListener("submit", async (e) => {
       return
     }
 
-    // ✅ Success — store user and redirect
     localStorage.setItem("treeco_user", JSON.stringify(data))
     showSuccessAndRedirect(btnLoginSubmit, "¡Bienvenido!", () => {
       globalThis.location.href = "dashboard.html"
@@ -232,7 +229,6 @@ formRegister.addEventListener("submit", async (e) => {
       return
     }
 
-    // ✅ Success → abrir modal de verificación de email
     const emailToVerify = inputRegEmail.value.trim()
     showSuccessAndRedirect(btnRegSubmit, "¡Código enviado!", () => {
       window.openVerifyModal(emailToVerify)
@@ -283,9 +279,9 @@ mobileTabs.forEach((tab) => {
 })()
 
 /* ═══════════════════════════════════════════════
-   TREECO — Modals Logic
-   Verificación de email + Recuperación de contraseña
-   ═══════════════════════════════════════════════ */
+			TREECO — Modals Logic
+			Verificación de email + Recuperación de contraseña
+			═══════════════════════════════════════════════ */
 
 const MODAL_API = "http://localhost:8080"
 
@@ -316,6 +312,7 @@ function closeModal(backdropEl) {
   document.body.style.overflow = ""
 }
 
+// totalSteps: número total de steps incluyendo el de éxito
 function goToStep(panelPrefix, dotPrefix, stepNumber, totalSteps) {
   for (let i = 1; i <= totalSteps; i++) {
     const panel = document.getElementById(panelPrefix + i)
@@ -328,50 +325,102 @@ function goToStep(panelPrefix, dotPrefix, stepNumber, totalSteps) {
   }
 }
 
-function initCodeInputs(containerEl) {
+// ── Code inputs: navegación, paste y teclado ────
+function initCodeInputs(containerEl, onComplete) {
   const digits = Array.from(containerEl.querySelectorAll(".code-digit"))
 
   digits.forEach((input, idx) => {
+    // Solo permitir dígitos y teclas de control
     input.addEventListener("keydown", (e) => {
-      if (!/^\d$/.test(e.key) && !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)) {
+      // Enter cuando el código está completo → disparar callback
+      if (e.key === "Enter") {
+        e.preventDefault()
+        const code = digits.map((d) => d.value).join("")
+        if (code.length === 6 && typeof onComplete === "function") {
+          onComplete()
+        }
+        return
+      }
+
+      // Backspace en celda vacía → retroceder al anterior
+      if (e.key === "Backspace" && !input.value && idx > 0) {
+        e.preventDefault()
+        digits[idx - 1].value = ""
+        digits[idx - 1].classList.remove("filled")
+        digits[idx - 1].focus()
+        return
+      }
+
+      // Navegación con flechas entre celdas
+      if (e.key === "ArrowLeft" && idx > 0) {
+        e.preventDefault()
+        digits[idx - 1].focus()
+        return
+      }
+      if (e.key === "ArrowRight" && idx < digits.length - 1) {
+        e.preventDefault()
+        digits[idx + 1].focus()
+        return
+      }
+
+      // Bloquear todo lo que no sea dígito o tecla de control
+      if (
+        !/^\d$/.test(e.key) &&
+        !["Backspace", "Delete", "Tab"].includes(e.key) &&
+        !(e.ctrlKey || e.metaKey) // permitir Ctrl+V / Cmd+V
+      ) {
         e.preventDefault()
       }
     })
 
+    // Al escribir un dígito: rellenar la celda y avanzar
     input.addEventListener("input", () => {
       const val = input.value.replace(/\D/g, "")
       input.value = val ? val[0] : ""
       input.classList.toggle("filled", !!input.value)
-      if (val && idx < digits.length - 1) digits[idx + 1].focus()
-    })
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !input.value && idx > 0) {
-        digits[idx - 1].value = ""
-        digits[idx - 1].classList.remove("filled")
-        digits[idx - 1].focus()
+      if (val && idx < digits.length - 1) {
+        digits[idx + 1].focus()
+      }
+      // Si se acaba de rellenar el último dígito, disparar callback
+      if (val && idx === digits.length - 1 && typeof onComplete === "function") {
+        const code = digits.map((d) => d.value).join("")
+        if (code.length === 6) onComplete()
       }
     })
 
+    // Paste: distribuir dígitos pegados en cada celda
     input.addEventListener("paste", (e) => {
       e.preventDefault()
-      const pasted = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 6)
+      const raw = (e.clipboardData || window.clipboardData).getData("text")
+      const pasted = raw.replace(/\D/g, "").slice(0, 6)
+      if (!pasted) return
+
+      // Limpiar todas primero
+      digits.forEach((d) => {
+        d.value = ""
+        d.classList.remove("filled")
+      })
+
       pasted.split("").forEach((ch, i) => {
         if (digits[i]) {
           digits[i].value = ch
           digits[i].classList.add("filled")
         }
       })
-      digits[Math.min(pasted.length, digits.length - 1)].focus()
+
+      // Foco: primera celda vacía o la última si está completo
+      const nextEmpty = digits.findIndex((d) => !d.value)
+      const focusIdx = nextEmpty === -1 ? digits.length - 1 : nextEmpty
+      digits[focusIdx].focus()
+
+      // Si el código ya está completo al pegar, disparar callback
+      if (pasted.length === 6 && typeof onComplete === "function") {
+        onComplete()
+      }
     })
   })
 
-  containerEl.getCode = () =>
-    digits
-      .map(function (d) {
-        return d.value
-      })
-      .join("")
+  containerEl.getCode = () => digits.map((d) => d.value).join("")
 
   containerEl.reset = () => {
     digits.forEach((d) => {
@@ -441,28 +490,12 @@ function initVerifyModal() {
   let currentEmail = ""
   let resendTimer = null
 
-  initCodeInputs(codeInputs)
-
-  window.openVerifyModal = function (email) {
-    currentEmail = email
-    emailLabel.textContent = email
-    modalClearError(errorEl)
-    goToStep("vstep-", "vdot-", 1, 2)
-    successRing.classList.remove("animate")
-    if (resendTimer) clearInterval(resendTimer)
-    openModal(backdrop)
-    setTimeout(function () {
-      codeInputs.reset()
-      resendTimer = startResendTimer(btnResend, timerEl, 30)
-    }, 320)
-  }
-
-  btnClose.addEventListener("click", () => closeModal(backdrop))
-  backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) closeModal(backdrop)
+  // Pasar confirmCode como callback de "código completo"
+  initCodeInputs(codeInputs, () => {
+    if (backdrop.classList.contains("open")) confirmCode()
   })
 
-  btnConfirm.addEventListener("click", async () => {
+  async function confirmCode() {
     const code = codeInputs.getCode()
     if (code.length < 6) {
       modalShowError(errorEl, "Introduce los 6 dígitos del código")
@@ -500,7 +533,35 @@ function initVerifyModal() {
     } finally {
       modalSetLoading(btnConfirm, false)
     }
+  }
+
+  window.openVerifyModal = function (email) {
+    currentEmail = email
+    emailLabel.textContent = email
+    modalClearError(errorEl)
+    goToStep("vstep-", "vdot-", 1, 2)
+    successRing.classList.remove("animate")
+    if (resendTimer) clearInterval(resendTimer)
+    openModal(backdrop)
+    setTimeout(function () {
+      codeInputs.reset()
+      resendTimer = startResendTimer(btnResend, timerEl, 30)
+    }, 320)
+  }
+
+  btnClose.addEventListener("click", () => closeModal(backdrop))
+
+  // Clic fuera del modal → cerrar
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeModal(backdrop)
   })
+
+  // Escape → cerrar
+  backdrop.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal(backdrop)
+  })
+
+  btnConfirm.addEventListener("click", confirmCode)
 
   btnResend.addEventListener("click", async () => {
     modalClearError(errorEl)
@@ -554,7 +615,10 @@ function initResetModal() {
   let validatedCode = ""
   let resendTimer = null
 
-  initCodeInputs(codeInputs)
+  // Callback de "código completo" para el modal de reset
+  initCodeInputs(codeInputs, () => {
+    if (backdrop.classList.contains("open")) validateCode()
+  })
 
   // Enlace ¿Olvidaste tu contraseña?
   const linkForgot = document.querySelector(".link-forgot")
@@ -575,15 +639,34 @@ function initResetModal() {
     newPassInput.value = ""
     strengthEl.dataset.strength = "0"
     strengthLbl.textContent = "Introduce una contraseña"
-    goToStep("rstep-", "rdot-", 1, 3)
+    // ← totalSteps = 4 (incluye el step de éxito)
+    goToStep("rstep-", "rdot-", 1, 4)
     successRing.classList.remove("animate")
     openModal(backdrop)
-    setTimeout(() => codeInputs.reset(), 50)
+    setTimeout(() => {
+      codeInputs.reset()
+      emailInput.focus()
+    }, 50)
   }
 
   btnClose.addEventListener("click", () => closeModal(backdrop))
+
+  // Clic fuera del modal → cerrar
   backdrop.addEventListener("click", (e) => {
     if (e.target === backdrop) closeModal(backdrop)
+  })
+
+  // Escape → cerrar
+  backdrop.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal(backdrop)
+  })
+
+  // Step 1: Enter en el campo email → enviar
+  emailInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      btnSend.click()
+    }
   })
 
   // Step 1 — enviar email
@@ -606,7 +689,7 @@ function initResetModal() {
       currentEmail = email
       emailDisplay.textContent = email
       if (resendTimer) clearInterval(resendTimer)
-      goToStep("rstep-", "rdot-", 2, 3)
+      goToStep("rstep-", "rdot-", 2, 4)
       setTimeout(() => {
         codeInputs.reset()
         resendTimer = startResendTimer(btnResend, timerEl, 30)
@@ -619,7 +702,7 @@ function initResetModal() {
   })
 
   // Step 2 — validar código
-  btnValidate.addEventListener("click", async () => {
+  async function validateCode() {
     const code = codeInputs.getCode()
     if (code.length < 6) {
       modalShowError(error2, "Introduce los 6 dígitos del código")
@@ -641,14 +724,16 @@ function initResetModal() {
         return
       }
       validatedCode = code
-      goToStep("rstep-", "rdot-", 3, 3)
+      goToStep("rstep-", "rdot-", 3, 4)
       setTimeout(() => newPassInput.focus(), 50)
     } catch {
       modalShowError(error2, "No se pudo conectar al servidor")
     } finally {
       modalSetLoading(btnValidate, false)
     }
-  })
+  }
+
+  btnValidate.addEventListener("click", validateCode)
 
   // Reenviar código
   btnResend.addEventListener("click", async () => {
@@ -681,6 +766,14 @@ function initResetModal() {
     strengthLbl.textContent = val.length ? ["", "Débil", "Regular", "Buena", "Fuerte"][s] : "Introduce una contraseña"
   })
 
+  // Step 3: Enter en el campo de nueva contraseña → confirmar
+  newPassInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      btnConfirm.click()
+    }
+  })
+
   // Step 3 — confirmar nueva contraseña
   btnConfirm.addEventListener("click", async () => {
     const newPassword = newPassInput.value
@@ -703,7 +796,8 @@ function initResetModal() {
         modalShowError(error3, data.error || "Error al cambiar la contraseña")
         return
       }
-      goToStep("rstep-", "rdot-", 4, 3)
+      // ← totalSteps = 4 para que el step 4 (éxito) se active correctamente
+      goToStep("rstep-", "rdot-", 4, 4)
       playSuccessAnimation(successRing, () => {
         setTimeout(() => {
           closeModal(backdrop)

@@ -99,4 +99,5 @@ header .user .username button {
 header .user .username button:hover {
   color: var(--color-text-primary);
   transition: all var(--duration-fast) var(--ease-smooth);
+	cursor: pointer;
 }

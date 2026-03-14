@@ -1,5 +1,13 @@
 package com.treeco.api.service;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.treeco.api.dto.user.TaskResponseDto;
 import com.treeco.api.model.Project;
 import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
@@ -9,12 +17,6 @@ import com.treeco.api.model.enums.TaskType;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.TaskRepository;
 import com.treeco.api.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 public class TaskService {
@@ -41,6 +43,22 @@ public class TaskService {
     public List<Task> getTasksByProject(Integer projectId) {
         findProjectOrThrow(projectId);
         return taskRepository.findByProjectId(projectId);
+    }
+
+    /**
+     * Devuelve todas las tareas de un usuario en formato DTO, incluyendo el nombre
+     * del proyecto.
+     * 
+     * @throws NoSuchElementException si el usuario no existe
+     */
+    @Transactional(readOnly = true)
+    public List<TaskResponseDto> getTaskDtosByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado con id: " + userId));
+
+        return user.getAllTasks().stream()
+                .map(this::toDto)
+                .toList();
     }
 
     /**
@@ -201,7 +219,31 @@ public class TaskService {
         taskRepository.delete(task);
     }
 
-    // ── AUXILIAR ──────────────────────────────────────────────────────
+    // ── AUXILIARES ────────────────────────────────────────────────────
+
+    private TaskResponseDto toDto(Task task) {
+        TaskResponseDto dto = new TaskResponseDto();
+
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+        dto.setDateCreation(task.getDateCreation());
+        dto.setDateDeadline(task.getDateDeadline());
+        dto.setPriority(task.getPriority() != null ? task.getPriority().name() : null);
+        dto.setCompleted(task.isCompleted());
+        dto.setState(task.getState() != null ? task.getState().name() : null);
+        dto.setType(task.getType() != null ? task.getType().name() : null);
+
+        if (task.getProject() != null) {
+            dto.setProjectId(task.getProject().getId());
+            dto.setProjectName(task.getProject().getName());
+        } else {
+            dto.setProjectId(null);
+            dto.setProjectName("Sin proyecto");
+        }
+
+        return dto;
+    }
 
     private Project findProjectOrThrow(Integer projectId) {
         return projectRepository.findById(projectId)

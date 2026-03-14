@@ -4,15 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.mindrot.jbcrypt.BCrypt;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 
 /**
  * Clase que representa un usuario del sistema TreeCO
  */
+
 @Entity
 @Table(name = "users")
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -26,14 +29,11 @@ public class User {
     @Column(nullable = false)
     private String hashPassword;
 
-    /**
-     * Indica si el usuario ha verificado su email.
-     * Hasta que sea true, no podrá iniciar sesión.
-     */
     @Column(nullable = false)
     private boolean emailVerified = false;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Project> projects;
 
     /* ── Constructores ──────────────────────────── */
@@ -51,9 +51,13 @@ public class User {
 
     /* ── Getters y Setters ──────────────────────── */
 
-    public Integer getId() { return id; }
+    public Integer getId() {
+        return id;
+    }
 
-    public String getUsername() { return username; }
+    public String getUsername() {
+        return username;
+    }
 
     public void setUsername(String username) {
         if (username == null || username.trim().isEmpty())
@@ -61,7 +65,9 @@ public class User {
         this.username = username.trim();
     }
 
-    public String getEmail() { return email; }
+    public String getEmail() {
+        return email;
+    }
 
     public void setEmail(String email) {
         if (email == null || email.trim().isEmpty())
@@ -71,7 +77,9 @@ public class User {
         this.email = email.trim();
     }
 
-    public String getHashPassword() { return hashPassword; }
+    public String getHashPassword() {
+        return hashPassword;
+    }
 
     public void setPassword(String password) {
         if (password == null || password.trim().isEmpty())
@@ -81,26 +89,39 @@ public class User {
         this.hashPassword = BCrypt.hashpw(password, BCrypt.gensalt(6));
     }
 
-    public boolean isEmailVerified() { return emailVerified; }
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
 
-    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
 
-    public List<Project> getProjects() { return List.copyOf(this.projects); }
+    public List<Project> getProjects() {
+        return List.copyOf(this.projects);
+    }
 
     /* ── Métodos de lógica ──────────────────────── */
 
     public boolean checkPassword(String password) {
-        if (password == null) return false;
+        if (password == null)
+            return false;
         return BCrypt.checkpw(password, this.hashPassword);
     }
 
     public boolean addProject(Project project) {
-        if (project == null) throw new IllegalArgumentException("El proyecto no puede ser nulo");
+        if (project == null)
+            throw new IllegalArgumentException("El proyecto no puede ser nulo");
         return this.projects.add(project);
     }
 
-    public boolean removeProject(Project project) { return this.projects.remove(project); }
-    public Project removeProject(int index)        { return this.projects.remove(index); }
+    public boolean removeProject(Project project) {
+        return this.projects.remove(project);
+    }
+
+    public Project removeProject(int index) {
+        return this.projects.remove(index);
+    }
 
     public Project getProjectByid(int projectid) {
         return this.projects.stream()
@@ -115,7 +136,8 @@ public class User {
     }
 
     public double getGlobalProgress() {
-        if (this.projects.isEmpty()) return 0;
+        if (this.projects.isEmpty())
+            return 0;
         return this.projects.stream()
                 .mapToDouble(Project::getProgress)
                 .average().orElse(0);
@@ -130,12 +152,16 @@ public class User {
     }
 
     @Override
-    public int hashCode() { return Objects.hashCode(id); }
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
         User other = (User) obj;
         return Objects.equals(id, other.id);
     }

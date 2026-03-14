@@ -4,6 +4,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.treeco.api.model.enums.State;
 import jakarta.persistence.*;
 
@@ -13,16 +16,23 @@ public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
+
     @Column(nullable = false)
     private String name;
+
     @Column(nullable = false)
     private String description;
+
     @Column(nullable = false)
     private LocalDate creationDate;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonBackReference
     private User user;
+
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Task> tasks;
 
     public Project() {

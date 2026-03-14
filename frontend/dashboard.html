@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>TreeCO - Dashboard</title>
+    <title>TreeCO — Dashboard</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="./assets/img/favicon/TreeCO.svg" />
     <link rel="apple-touch-icon" href="./assets/img/favicon/TreeCO.svg" />
@@ -14,33 +14,19 @@
     <link rel="stylesheet" href="./styles/core/root.css" />
     <link rel="stylesheet" href="./styles/core/base.css" />
     <link rel="stylesheet" href="./styles/pages/dashboard.css" />
+    <link rel="stylesheet" href="./components/header/header.css" />
+
+
 </head>
 
 <body>
-    <div id="header"></div>
+    <header-component></header-component>
     <main>
-        <div class="tasks">
-            <div id="task1" class="task">1</div>
-            <div class="task">2</div>
-            <div class="task">3</div>
-            <div class="task">4</div>
-            <div class="task">5</div>
-            <div class="task">6</div>
-        </div>
-        <div class="tasks">
-            <div class="task">1</div>
-            <div class="task">2</div>
-            <div class="task">3</div>
-            <div class="task">4</div>
-            <div class="task">5</div>
-            <div class="task">6</div>
-        </div>
+        <div class="tasks" id="listTasks"></div>
+
     </main>
-    <script src="./scripts/core/loadComponents.js"></script>
-    <script src="./scripts/pages/dashboard.js"></script>
-    <script>
-        loadComponent("header", "./components/header/header.html")
-    </script>
+    <script src="./components/header/header-component.js" defer></script>
+    <script type="module" src="./scripts/pages/dashboard.js"></script>
 </body>
 
 </html>

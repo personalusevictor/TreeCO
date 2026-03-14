@@ -1,0 +1,110 @@
+package com.treeco.api.dto.user;
+
+import java.time.LocalDate;
+
+public class TaskResponseDto {
+
+    private Integer id;
+    private String title;
+    private String description;
+    private LocalDate dateCreation;
+    private LocalDate dateDeadline;
+    private String priority;
+    private Boolean completed;
+    private String state;
+    private String type;
+
+    private Integer projectId;
+    private String projectName;
+
+    public TaskResponseDto() {
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public LocalDate getDateCreation() {
+        return dateCreation;
+    }
+
+    public void setDateCreation(LocalDate dateCreation) {
+        this.dateCreation = dateCreation;
+    }
+
+    public LocalDate getDateDeadline() {
+        return dateDeadline;
+    }
+
+    public void setDateDeadline(LocalDate dateDeadline) {
+        this.dateDeadline = dateDeadline;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public Boolean getCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(Boolean completed) {
+        this.completed = completed;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Integer getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(Integer projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+}

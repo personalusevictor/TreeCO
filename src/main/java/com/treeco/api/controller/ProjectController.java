@@ -1,9 +1,10 @@
 package com.treeco.api.controller;
 
 import com.treeco.api.model.Project;
-import com.treeco.api.model.User;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.UserRepository;
+import com.treeco.api.service.ProjectMemberService;
+import com.treeco.api.service.ProjectService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/projects")
@@ -19,10 +19,17 @@ public class ProjectController {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectService projectService;
+    private final ProjectMemberService projectMemberService;
 
-    public ProjectController(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectController(ProjectRepository projectRepository,
+                             UserRepository userRepository,
+                             ProjectService projectService,
+                             ProjectMemberService projectMemberService) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.projectService = projectService;
+        this.projectMemberService = projectMemberService;
     }
 
     public record ProjectRequest(String name, String description, Integer userId) {
@@ -66,21 +73,16 @@ public class ProjectController {
                         .body(Map.of("error", "Los campos 'name' y 'userId' son obligatorios"));
             }
 
-            Optional<User> userOpt = userRepository.findById(request.userId());
-            if (userOpt.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Usuario no encontrado"));
-            }
-
-            Project project = new Project(request.name(), request.description());
-            project.setUser(userOpt.get());
-            projectRepository.save(project);
+            Project project = projectService.createProject(request.userId(), request.name(), request.description());
 
             return ResponseEntity
                     .status(HttpStatus.CREATED)
                     .body(project);
 
+        } catch (NoSuchElementException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)

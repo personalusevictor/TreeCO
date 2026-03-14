@@ -64,6 +64,7 @@ build/
 
 ### VS Code ###
 .vscode/
+.cursor
 
 ### Node ###
 node_modules

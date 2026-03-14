@@ -2,6 +2,9 @@ package com.treeco.api.model;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.treeco.api.model.enums.EventType;
 import com.treeco.api.model.enums.Priority;
 import com.treeco.api.model.enums.State;
@@ -11,34 +14,46 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "task")
 public class Task {
-    // ATRIBUTOS DEL OBJETO
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
+
     @Column(nullable = false)
     private String title;
+
     @Column(nullable = false)
     private String description;
+
     @Column(nullable = false)
     private final LocalDate dateCreation;
+
     @Column(nullable = false)
     private LocalDate dateDeadline;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Priority priority;
+
     @Column(nullable = false)
     private boolean completed;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
+    @JsonBackReference
     private Project project;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
     private User assignedTo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private TaskType type = TaskType.NORMAL;
+
     @OneToOne(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private CodeTask codeTask;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private EventType eventType;

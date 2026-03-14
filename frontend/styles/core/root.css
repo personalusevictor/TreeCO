@@ -6,6 +6,7 @@
 
 :root {
   /* ── Paleta base ───────────────────────────── */
+
   --color-bg-deep: #050a08;
   --color-bg-mid: #0a110d;
   --color-bg-surface: #0d1610;
@@ -29,6 +30,14 @@
 
   --color-error: rgba(255, 80, 80, 0.85);
   --color-error-bg: rgba(255, 80, 80, 0.08);
+
+  --color-red-faint: rgba(220, 61, 61, 0.12);
+  --color-text-accent-red: #dc3d3d;
+  --color-red-primary: #dc3d3d;
+
+  --color-orange-primary: #ff7a18;
+  --color-orange-faint: rgba(255, 122, 24, 0.12);
+  --color-text-accent-orange: #ff7a18;
 
   /* ── Tipografía ─────────────────────────────── */
   --font-sans: "Sora", sans-serif;

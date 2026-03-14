@@ -392,7 +392,7 @@ function renderModalStats() {
     }
     counts[t.priority || "MID"]++
   })
-  ui.mStats.innerHTML = [counts.HIGH ? `<span class="mds-chip mds-high">${counts.HIGH}↑</span>` : "", counts.MID ? `<span class="mds-chip mds-mid">${counts.MID}—</span>` : "", counts.LOW ? `<span class="mds-chip mds-low">${counts.LOW}↓</span>` : "", counts.done ? `<span class="mds-chip mds-done">${counts.done}✓</span>` : "", counts.exp ? `<span class="mds-chip mds-exp">${counts.exp}!</span>` : ""].join("")
+  ui.mStats.innerHTML = [counts.HIGH ? `<span class="mds-chip mds-high">${counts.HIGH} ↑</span>` : "", counts.MID ? `<span class="mds-chip mds-mid">${counts.MID} —</span>` : "", counts.LOW ? `<span class="mds-chip mds-low">${counts.LOW} ↓</span>` : "", counts.done ? `<span class="mds-chip mds-done">${counts.done} ✓</span>` : "", counts.exp ? `<span class="mds-chip mds-exp">${counts.exp} !</span>` : ""].join("")
 }
 
 function renderModalTasks() {
@@ -447,8 +447,8 @@ function closeModal() {
 /* ══════════════════════════════════════════════════
 			PICKER
 	 ══════════════════════════════════════════════════ */
-const MES_S = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-const MES_F = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+const MES_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+const MES_FULL = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
 function openPicker() {
   // Guardar estado previo para poder cancelar
@@ -476,10 +476,10 @@ function renderPickerMonths() {
   ui.pickerMos.innerHTML = ""
   const todayYear = new Date().getFullYear(),
     todayMonth = new Date().getMonth()
-  MES_S.forEach((m, i) => {
+  MES_SHORT.forEach((m, i) => {
     const btn = document.createElement("button")
     btn.className = "pm-btn"
-    btn.title = MES_F[i]
+    btn.title = MES_FULL[i]
     btn.textContent = m
     // Mes de hoy real
     if (state.pickerYear === todayYear && i === todayMonth) btn.classList.add("is-today")
@@ -647,6 +647,12 @@ function bindEvents() {
       case "ArrowRight":
         navigate(+1)
         break
+			case "ArrowUp":
+				navigateY(1)
+				break
+			case "ArrowDown":
+				navigateY(-1)
+				break
       case "t":
       case "T":
         goToday()
@@ -682,6 +688,14 @@ function navigate(delta) {
     anchorDate.setDate(anchorDate.getDate() + delta * 7)
     state.selectedDate = new Date(anchorDate)
   }
+  render()
+}
+
+function navigateY(delta) {
+  const d = new Date(state.currentDate)
+  d.setFullYear(d.getFullYear() + delta)
+  state.currentDate = d
+
   render()
 }
 
