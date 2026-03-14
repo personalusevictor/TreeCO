@@ -9,8 +9,8 @@ class AppHeader extends HTMLElement {
 
         <nav class="navegator">
           <a class="link" href="./dashboard.html"><span class="icono">⬡</span> Dashboard</a>
-          <a class="link" href="./"><span class="icono">⚐</span> Proyectos</a>
-          <a class="link" href="./"><span class="icono">✓</span> Tareas</a>
+          <a class="link" href="./projects.html"><span class="icono">⚐</span> Proyectos</a>
+          <a class="link" href="./tasks.html"><span class="icono">✓</span> Tareas</a>
           <a class="link" href="./calendar.html"><span class="icono">◷</span> Calendario</a>
         </nav>
 
