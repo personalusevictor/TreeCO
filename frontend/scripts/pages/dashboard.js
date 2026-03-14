@@ -105,11 +105,11 @@ function formatRemainingTime(ms) {
   return ms > 0 ? `Tiempo restante: ${minutes}m` : `Vencida hace ${minutes}m`
 }
 
-function createTaskCard(task, projectsMap) {
+function createTaskCard(task) {
   const taskDivElement = document.createElement("Div")
   taskDivElement.classList.add("task")
 
-  const projectName = getProjectName(task, projectsMap)
+  const projectName = getProjectName(task)
   const priorityClass = getPriorityClass(task.priority)
   const remainingTimeClass = getRemainingTimeClass(getRemainingTime(task))
   const deadlineText = formatDate(task.dateDeadline)
