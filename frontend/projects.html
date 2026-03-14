@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>TreeCO — Proyectos</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./assets/img/favicon/TreeCO.svg" />
+    <link rel="apple-touch-icon" href="./assets/img/favicon/TreeCO.svg" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="./styles/core/root.css" />
+    <link rel="stylesheet" href="./styles/core/base.css" />
+    <link rel="stylesheet" href="./styles/pages/projects.css" />
+    <link rel="stylesheet" href="./components/header/header.css" />
+</head>
+
+<body>
+    <header-component></header-component>
+
+    <main>
+        <!-- Sidebar izquierdo: lista de proyectos -->
+        <aside class="projects-sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Proyectos</h2>
+                <button class="btn-new-project" id="btn-new-project" title="Nuevo proyecto">
+                    <span>+</span>
+                </button>
+            </div>
+
+            <div class="projects-list" id="projects-list">
+                <!-- Proyectos renderizados dinámicamente -->
+            </div>
+        </aside>
+
+        <!-- Panel derecho: detalle del proyecto -->
+        <section class="project-detail" id="project-detail">
+            <!-- Estado vacío -->
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">⚐</div>
+                <h3>Selecciona un proyecto</h3>
+                <p>Elige un proyecto de la lista o crea uno nuevo para empezar.</p>
+                <button class="btn-primary" id="btn-new-project-empty">Nuevo proyecto</button>
+            </div>
+
+            <!-- Contenido del proyecto (oculto por defecto) -->
+            <div class="detail-content" id="detail-content" style="display:none;">
+                <div class="detail-header">
+                    <div class="detail-header-left">
+                        <span class="detail-tag">Proyecto</span>
+                        <h1 class="detail-title" id="detail-title"></h1>
+                        <p class="detail-description" id="detail-description"></p>
+                    </div>
+                    <div class="detail-header-right">
+                        <div class="project-meta">
+                            <span class="meta-label">Creado</span>
+                            <span class="meta-value" id="detail-date"></span>
+                        </div>
+                        <div class="detail-actions">
+                            <button class="btn-icon btn-edit" id="btn-edit-project" title="Editar proyecto">✎</button>
+                            <button class="btn-icon btn-delete" id="btn-delete-project" title="Eliminar proyecto">⊘</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-label">Progreso</span>
+                        <span class="progress-value" id="progress-value">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span class="stat"><span class="stat-dot completed"></span><span id="stat-completed">0</span> completadas</span>
+                        <span class="stat"><span class="stat-dot in-progress"></span><span id="stat-inprogress">0</span> en progreso</span>
+                        <span class="stat"><span class="stat-dot expired"></span><span id="stat-expired">0</span> vencidas</span>
+                    </div>
+                </div>
+
+                <!-- Tareas del proyecto -->
+                <div class="tasks-section">
+                    <div class="tasks-section-header">
+                        <h3 class="tasks-title">Tareas</h3>
+                        <div class="tasks-controls">
+                            <div class="filter-group">
+                                <button class="filter-btn active" data-filter="all">Todas</button>
+                                <button class="filter-btn" data-filter="IN_PROGRESS">En progreso</button>
+                                <button class="filter-btn" data-filter="COMPLETED">Completadas</button>
+                                <button class="filter-btn" data-filter="EXPIRED">Vencidas</button>
+                            </div>
+                            <button class="btn-add-task" id="btn-add-task">+ Tarea</button>
+                        </div>
+                    </div>
+
+                    <div class="tasks-list" id="tasks-list">
+                        <!-- Tareas renderizadas dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Crear / Editar Proyecto -->
+    <div class="modal-overlay" id="modal-project" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-project-title">Nuevo proyecto</h3>
+                <button class="modal-close" id="modal-project-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="field-label">Nombre <span class="required">*</span></label>
+                <input class="field-input" id="project-name-input" type="text" placeholder="Ej: App móvil, Rediseño web…" maxlength="80" />
+
+                <label class="field-label">Descripción</label>
+                <textarea class="field-input field-textarea" id="project-desc-input" placeholder="Describe brevemente el proyecto…" rows="3" maxlength="300"></textarea>
+
+                <p class="field-error" id="project-form-error" style="display:none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="modal-project-cancel">Cancelar</button>
+                <button class="btn-primary" id="modal-project-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear / Editar Tarea -->
+    <div class="modal-overlay" id="modal-task" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-task-title">Nueva tarea</h3>
+                <button class="modal-close" id="modal-task-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="field-label">Título <span class="required">*</span></label>
+                <input class="field-input" id="task-title-input" type="text" placeholder="Ej: Diseñar mockups, Revisar PR…" maxlength="120" />
+
+                <label class="field-label">Descripción</label>
+                <textarea class="field-input field-textarea" id="task-desc-input" placeholder="Detalla la tarea…" rows="3" maxlength="400"></textarea>
+
+                <div class="field-row">
+                    <div class="field-col">
+                        <label class="field-label">Prioridad</label>
+                        <select class="field-input field-select" id="task-priority-input">
+                            <option value="LOW">Baja</option>
+                            <option value="MID" selected>Media</option>
+                            <option value="HIGH">Alta</option>
+                        </select>
+                    </div>
+                    <div class="field-col">
+                        <label class="field-label">Fecha límite</label>
+                        <input class="field-input" id="task-deadline-input" type="date" />
+                    </div>
+                </div>
+
+                <p class="field-error" id="task-form-error" style="display:none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="modal-task-cancel">Cancelar</button>
+                <button class="btn-primary" id="modal-task-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmar borrado -->
+    <div class="modal-overlay" id="modal-confirm" style="display:none;">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title">¿Eliminar proyecto?</h3>
+                <button class="modal-close" id="modal-confirm-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-text">Esta acción eliminará el proyecto y todas sus tareas. No se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="modal-confirm-cancel">Cancelar</button>
+                <button class="btn-danger" id="modal-confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./components/header/header-component.js" defer></script>
+    <script type="module" src="./scripts/pages/projects.js"></script>
+</body>
+
+</html>
