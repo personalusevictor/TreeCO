@@ -1,178 +1,199 @@
 import { api, requireAuth } from "../core/api.js"
 import { getUser } from "../core/session.js"
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Arranque del dashboard y carga de tareas pendientes
+// ─────────────────────────────────────────────────────────────────────────────
+
 document.addEventListener("DOMContentLoaded", () => {
   requireAuth()
-  loadTasks()
+  loadPendingTasksForDashboard()
 })
 
-// ------------- LOAD TASKS ---------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Obtención y visualización de tareas pendientes
+// ─────────────────────────────────────────────────────────────────────────────
 
-async function loadTasks() {
-  const tasksListElement = document.getElementById("listTasks")
+async function loadPendingTasksForDashboard() {
+  const tasksListContainer = document.getElementById("listTasks")
 
   try {
-    const currentSessionUser = getUser()
-    const userId = currentSessionUser?.userId
-    const [tasks] = await Promise.all([api.users.getTasks(userId), api.projects.getByUser(userId)])
-    const pendingTasks = tasks.filter((task) => task.completed === false).sort(sortTasksByDeadline)
+    const currentUser = getUser()
+    const currentUserId = currentUser?.userId ?? currentUser?.id
+    const [tasksResponse] = await Promise.all([api.users.getTasks(currentUserId), api.projects.getByUser(currentUserId)])
+
+    const pendingTasks = (Array.isArray(tasksResponse) ? tasksResponse : []).filter((task) => task.completed === false).sort(compareTasksByDeadlineAscending)
 
     if (pendingTasks.length === 0) {
-      tasksListElement.innerHTML = `
-        <div class="noTask">
-          <div class="noTaskIcon">✓</div>
-    
-          <p class="noTaskSubtitle">Todo completado</p>
-    
-          <h2 class="noTaskTitle">No tienes tareas pendientes</h2>
-    
-          <p class="noTaskText">
-            Todo está al día. Crea una nueva tarea para empezar a organizar tu trabajo
-            y verla aquí ordenada por fecha de finalización.
-          </p>
-    
-          <div class="noTaskGoTasks">
-            <a href="./../../task.html" class="noTaskGoTask">
-              Ir a tareas
-            </a>
-            <a href="./../../task.html" class="noTaskCreateTask">
-              Crear nueva tarea
-            </a>
-          </div>
-        </div>
-      `
+      tasksListContainer.innerHTML = buildNoPendingTasksMarkup()
       return
     }
 
+    const maxAgeMilliseconds = 30 * 24 * 60 * 60 * 1000
+
     pendingTasks.forEach((task) => {
-      const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
-      const remaining = getRemainingTime(task)
-
-      if (remaining < 0 && Math.abs(remaining) > THIRTY_DAYS) return
-
-      const taskDivElement = createTask(task)
-      tasksListElement.appendChild(taskDivElement)
+      const remainingTimeMilliseconds = getRemainingTimeMilliseconds(task)
+      if (remainingTimeMilliseconds < 0 && Math.abs(remainingTimeMilliseconds) > maxAgeMilliseconds) {
+        return
+      }
+      const taskCardElement = buildDashboardTaskCard(task)
+      tasksListContainer.appendChild(taskCardElement)
     })
   } catch (error) {
     console.error("Error cargando tareas:", error)
-
-    if (tasksListElement) {
-      tasksListElement.innerHTML = `<p>Error al cargar las tareas: ${error.message}</p>`
+    if (tasksListContainer) {
+      tasksListContainer.innerHTML = `<p>Error al cargar las tareas: ${error.message}</p>`
     }
   }
 }
 
-// Añade al html las tareas
-
-function createTask(task) {
-  const taskDivElement = document.createElement("div")
-  taskDivElement.classList.add("task")
-
-  const priorityClass = getPriorityClass(task.priority)
-  const deadlineText = formatDate(task.dateDeadline)
-  const stateText = formatState(task.state)
-  const remainingTime = formatRemainingTime(getRemainingTime(task))
-
-  taskDivElement.innerHTML = `
-    <div class="taskHeader">
-      <h3 class="taskTitle">${task.title ?? "Sin título"}</h3>
-      <span class="taskPriority ${priorityClass}">
-        ${task.priority ?? "SIN PRIORIDAD"}
-      </span>
-    </div>
-
-    <p class="taskProjectTitle">${task.projectName ?? "Sin proyecto"}</p>
-
-    <p class="taskDescription">
-      ${task.description ?? "Sin descripción"}
-    </p>
-
-    <div class="taskFooter">
-      <span class="taskState">${stateText}</span>
-      <span class="taskRemainingTime ${priorityClass}">${remainingTime}</span>
-      <span class="taskDeadline">${deadlineText}</span>
+function buildNoPendingTasksMarkup() {
+  return `
+    <div class="noTask">
+      <div class="noTaskIcon">✓</div>
+      <p class="noTaskSubtitle">Todo completado</p>
+      <h2 class="noTaskTitle">No tienes tareas pendientes</h2>
+      <p class="noTaskText">
+        Todo está al día. Crea una nueva tarea para empezar a organizar tu trabajo
+        y verla aquí ordenada por fecha de finalización.
+      </p>
+      <div class="noTaskGoTasks">
+        <a href="./../../task.html" class="noTaskGoTask">Ir a tareas</a>
+        <a href="./../../task.html" class="noTaskCreateTask">Crear nueva tarea</a>
+      </div>
     </div>
   `
-
-  return taskDivElement
 }
 
-// Ordeanar por fecha de entrega
+// ─────────────────────────────────────────────────────────────────────────────
+// Construcción de cada tarea en el dashboard
+// ─────────────────────────────────────────────────────────────────────────────
 
-function sortTasksByDeadline(task1, task2) {
-  const task1DeadlineTime = task1?.dateDeadline ? new Date(task1.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
-  const task2DeadlineTime = task2?.dateDeadline ? new Date(task2.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
+function buildDashboardTaskCard(task) {
+  const taskCardElement = document.createElement("div")
+  taskCardElement.classList.add("task", getStateCardClass(task.state))
 
-  return task1DeadlineTime - task2DeadlineTime
+  const formattedDeadline = formatDeadlineDateTime(task.dateDeadline)
+  const formattedState = formatStateForDisplay(task.state)
+  const remainingTimeLabel = formatRemainingTimeLabel(task)
+  const stateBadgeClass = getStateBadgeClass(task.state)
+  const remainingTimeColorClass = getTimeStatusClassFromState(task.state)
+
+  taskCardElement.innerHTML = `    
+    <div class="taskHeader">
+      <div>
+        <h3 class="taskTitle">${task.title ?? "Sin título"}</h3>
+        <p class="taskProjectTitle">Proyecto: ${task.projectName ?? "Sin proyecto"}</p>
+      </div>
+    </div>
+
+    <p class="taskDescription">${task.description ?? "Sin descripción"}</p>
+
+      <div class="taskFooter">
+        <span class="taskState ${stateBadgeClass}">${formattedState}</span>
+        <span class="taskDeadline">${formattedDeadline}</span>
+        <span class="taskRemainingTime ${remainingTimeColorClass}">${remainingTimeLabel}</span>
+      </div>
+  `
+
+  return taskCardElement
 }
 
-// Obtener tiempo restante
+// ─────────────────────────────────────────────────────────────────────────────
+// Comparación para ordenar por fecha límite
+// ─────────────────────────────────────────────────────────────────────────────
 
-function getRemainingTime(task) {
-  const taskDeadlineTime = task?.dateDeadline ? new Date(task.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
-
-  return taskDeadlineTime - Date.now()
+function compareTasksByDeadlineAscending(firstTask, secondTask) {
+  const firstDeadlineTime = firstTask?.dateDeadline ? new Date(firstTask.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
+  const secondDeadlineTime = secondTask?.dateDeadline ? new Date(secondTask.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
+  return firstDeadlineTime - secondDeadlineTime
 }
 
-// Obtener clases dependiendo de x situacion
+// ─────────────────────────────────────────────────────────────────────────────
+//  Tiempo restante
+// ─────────────────────────────────────────────────────────────────────────────
 
-function getPriorityClass(priority) {
-  const priorityValue = String(priority ?? "").toLowerCase()
-
-  if (priorityValue === "high") return "red"
-  if (priorityValue === "mid") return "orange"
-  if (priorityValue === "low") return "green"
-
-  return "priority-default"
+function getRemainingTimeMilliseconds(task) {
+  const deadlineTimestamp = task?.dateDeadline ? new Date(task.dateDeadline).getTime() : Number.MAX_SAFE_INTEGER
+  return deadlineTimestamp - Date.now()
 }
 
-// Formatear datos
+// ─────────────────────────────────────────────────────────────────────────────
+// Formateo de prioridad, estado, fechas y tiempo restante
+// ─────────────────────────────────────────────────────────────────────────────
 
-function formatState(state) {
+function getStateCardClass(state) {
+  const normalized = String(state ?? "").toUpperCase()
+  if (normalized === "COMPLETED") return "taskCompleted"
+  if (normalized === "EXPIRED") return "taskExpired"
+  return "taskInProgress"
+}
+
+function getStateBadgeClass(state) {
+  const normalized = String(state ?? "").toUpperCase()
+  if (normalized === "COMPLETED") return "stateCompleted"
+  if (normalized === "EXPIRED") return "stateExpired"
+  return "stateInProgress"
+}
+
+function getTimeStatusClassFromState(state) {
+  const normalized = String(state ?? "").toUpperCase()
+  if (normalized === "COMPLETED") return "timeStatusCompleted"
+  if (normalized === "EXPIRED") return "timeStatusExpired"
+  return "timeStatusInProgress"
+}
+
+function formatStateForDisplay(state) {
   if (!state) return "Sin estado"
-
   return state
     .toLowerCase()
     .split("_")
-    .map((statePart) => statePart.charAt(0).toUpperCase() + statePart.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ")
 }
 
-function formatDate(dateString) {
-  if (!dateString) {
-    return "Sin fecha límite"
-  }
-
-  const deadlineDate = new Date(dateString)
-
-  return deadlineDate
+function formatDeadlineDateTime(dateString) {
+  if (!dateString) return "Sin fecha límite"
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return "Sin fecha límite"
+  return date
     .toLocaleString("es-ES", {
       day: "2-digit",
-      month: "2-digit",
+      month: "short",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     })
-    .replace(",", "")
+    .replaceAll(",", " ·")
 }
 
-function formatRemainingTime(ms) {
-  if (ms >= Number.MAX_SAFE_INTEGER) return "Sin fecha limite"
+function formatRemainingTimeLabel(task) {
+  const state = String(task?.state ?? "").toUpperCase()
+  const dateString = task?.dateDeadline
 
-  const abs = Math.abs(ms)
+  if (!dateString) return "Sin fecha límite"
 
-  const days = Math.floor(abs / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((abs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const minutes = Math.floor((abs % (1000 * 60 * 60)) / (1000 * 60))
+  const deadlineDate = new Date(dateString)
+  if (Number.isNaN(deadlineDate.getTime())) return "Fecha inválida"
 
-  if (days >= 1) {
-    const text = hours > 0 ? `${days}d ${hours}h` : `${days}d`
-    return ms > 0 ? `Tiempo restante: ${text}` : `Vencida hace ${text}`
+  const now = Date.now()
+  const differenceMilliseconds = deadlineDate.getTime() - now
+  const absoluteDifferenceMilliseconds = Math.abs(differenceMilliseconds)
+
+  const totalHours = Math.floor(absoluteDifferenceMilliseconds / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+
+  if (state === "EXPIRED") {
+    if (days === 0 && hours === 0) return "Vencida hace menos de 1h"
+    return `Vencida hace ${days}d ${hours}h`
   }
 
-  if (hours >= 1) {
-    const text = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
-    return ms > 0 ? `Tiempo restante: ${text}` : `Vencida hace ${text}`
+  if (state === "COMPLETED") return "Completada"
+
+  if (days === 0 && hours === 0) {
+    return differenceMilliseconds < 0 ? "Vencida hace menos de 1h" : "Vence en menos de 1h"
   }
 
-  return ms > 0 ? `Tiempo restante: ${minutes}m` : `Vencida hace ${minutes}m`
+  return `Tiempo restante: ${days}d ${hours}h`
 }
