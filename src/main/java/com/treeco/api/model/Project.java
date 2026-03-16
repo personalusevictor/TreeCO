@@ -1,6 +1,6 @@
 package com.treeco.api.model;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +25,7 @@ public class Project {
     private String description;
 
     @Column(nullable = false)
-    private LocalDate creationDate;
+    private LocalDateTime creationDate;
 
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
@@ -43,14 +43,14 @@ public class Project {
     private List<ProjectMember> members = new ArrayList<>();
 
     public Project() {
-        this.creationDate = LocalDate.now();
+        this.creationDate = LocalDateTime.now();
         this.tasks = new ArrayList<>();
     }
 
     public Project(String name, String description) {
         setName(name);
         setDescription(description);
-        this.creationDate = LocalDate.now();
+        this.creationDate = LocalDateTime.now();
         this.tasks = new ArrayList<>();
     }
 
@@ -127,7 +127,7 @@ public class Project {
         this.description = description;
     }
 
-    public LocalDate getCreationDate() {
+    public LocalDateTime getCreationDate() {
         return creationDate;
     }
 

@@ -83,38 +83,7 @@ public class TokenEmailService {
 			helper.setTo(email);
 			helper.setSubject("Código de verificación - 🌿 TreeCO");
 
-			String html = """
-								<html>
-								<head>
-										<link rel="preconnect" href="https://fonts.googleapis.com">
-										<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-										<link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&family=Sora:wght@100..800&display=swap" rel="stylesheet">
-								</head>
-								<body style="padding:20px; ">
-								    <div style="max-width:500px;margin:auto;background:white;padding:30px;border-radius:8px;">
-
-								        <h2 style="color:rgba(255, 255, 255, 0.92); font-size: 1.55rem">Tree<span style="color: #3ddc84;">CO</span></h2>
-
-								        <p>Estimado/a %s,</p>
-
-								        <p>Hemos recibido una solicitud para generar un nuevo código de verificación.</p>
-
-								        <div style="font-size:28px;font-weight:bold;letter-spacing:5px;margin:20px 0;">
-								            %s
-								        </div>
-
-								        <p>Este código expirará en 10 minutos.</p>
-
-								        <p style="color:#777;">Si no solicitaste este código, puedes ignorar este mensaje.</p>
-
-								        <br>
-								        <p>Atentamente,<br>Equipo de TreeCO</p>
-
-								    </div>
-								</body>
-								</html>
-								"""
-					.formatted(username.trim(), code);
+			String html = buildVerificationHtml(username.trim(), code);
 
 			helper.setText(html, true);
 
@@ -190,36 +159,9 @@ public class TokenEmailService {
 			helper.setTo(email);
 			helper.setSubject("Reenviar código de verificación - 🌿 TreeCO");
 
-			String html = """
-					<html>
-					<body style="font-family: Arial, sans-serif; background:#f4f4f4; padding:20px;">
-					    <div style="max-width:500px;margin:auto;background:white;padding:30px;border-radius:8px;">
-
-					        <h2 style="color:rgba(255, 255, 255, 0.92); font-size: 2rem">Tree<span style="color: #3ddc84;">CO</span></h2>
-
-					        <p>Estimado/a %s,</p>
-
-					        <p>Hemos recibido una solicitud para generar un nuevo código de verificación.</p>
-
-					        <div style="font-size:28px;font-weight:bold;letter-spacing:5px;margin:20px 0;">
-					            %s
-					        </div>
-
-					        <p>Este código expirará en 10 minutos.</p>
-
-					        <p style="color:#777;">Si no solicitaste este código, puedes ignorar este mensaje.</p>
-
-					        <br>
-					        <p>Atentamente,<br>Equipo de TreeCO</p>
-
-					    </div>
-					</body>
-					</html>
-					"""
-					.formatted(pending.username(), newCode);
+			String html = buildVerificationHtml(pending.username(), newCode);
 
 			helper.setText(html, true);
-
 			mailSender.send(message);
 		} catch (MessagingException e) {
 			System.out.println(e);
@@ -251,63 +193,7 @@ public class TokenEmailService {
 				helper.setTo(email);
 				helper.setSubject("🔑 TreeCO — Restablece tu contraseña");
 
-				String html = """
-						<html>
-							<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
-
-							  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
-							    <tr>
-							      <td align="center">
-
-							        <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-
-							          <tr>
-							            <td align="center" style="padding-bottom:20px;">
-							              <h2 style="margin:0;color:#2c7a4b;">TreeCO</h2>
-							            </td>
-							          </tr>
-
-							          <tr>
-							            <td style="color:#333;font-size:16px;">
-							              Hola <strong>%s</strong>,
-							              <br><br>
-							              Hemos recibido una solicitud para restablecer tu contraseña.
-							              <br><br>
-							              Utiliza el siguiente código de verificación:
-							            </td>
-							          </tr>
-
-							          <tr>
-							            <td align="center" style="padding:30px 0;">
-							              <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2c7a4b;">
-							                %s
-							              </div>
-							            </td>
-							          </tr>
-
-							          <tr>
-							            <td style="color:#555;font-size:14px;line-height:1.6;">
-							              Este código es válido durante <strong>10 minutos</strong> y solo puede utilizarse una vez.
-							              <br><br>
-							              Si no solicitaste este cambio, puedes ignorar este mensaje.
-							            </td>
-							          </tr>
-
-							          <tr>
-							            <td style="padding-top:30px;color:#888;font-size:13px;">
-							              — El equipo de TreeCO
-							            </td>
-							          </tr>
-
-							        </table>
-
-							      </td>
-							    </tr>
-							  </table>
-
-							</body>
-						</html>"""
-						.formatted(user.getUsername(), code);
+				String html = buildPasswordResetHtml(user.getUsername(), code);
 
 				helper.setText(html, true);
 
@@ -365,6 +251,327 @@ public class TokenEmailService {
 	private String generateCode() {
 		SecureRandom rng = new SecureRandom();
 		return String.valueOf(100_000 + rng.nextInt(900_000));
+	}
+
+	// ════════════════════════════════════════════
+	// HTML builders
+	// ════════════════════════════════════════════
+
+	private Object[] splitDigits(String code) {
+		Object[] chars = new Object[6];
+		for (int i = 0; i < 6; i++) chars[i] = code.charAt(i);
+		return chars;
+	}
+
+	private String buildVerificationHtml(String username, String code) {
+		Object[] d = splitDigits(code);
+		return """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Código de verificación — TreeCO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Dark mode overrides ── */
+    @media (prefers-color-scheme: dark) {
+      .email-body    { background-color: #050a08 !important; }
+      .email-outer   { background-color: #050a08 !important; }
+      .email-card    { background: linear-gradient(160deg,rgba(255,255,255,0.055) 0%%,rgba(255,255,255,0.02) 100%%) !important; border-color: rgba(255,255,255,0.12) !important; }
+      .email-header  { background: radial-gradient(ellipse 100%% 160%% at 50%% 0%%,rgba(61,220,132,0.08) 0%%,transparent 60%%) !important; border-color: rgba(255,255,255,0.07) !important; }
+      .text-logo     { color: rgba(255,255,255,0.92) !important; }
+      .text-eyebrow  { color: rgba(61,220,132,0.65) !important; }
+      .text-meta     { color: rgba(255,255,255,0.22) !important; }
+      .text-title    { color: rgba(255,255,255,0.92) !important; }
+      .text-body     { color: rgba(255,255,255,0.42) !important; }
+      .text-step     { color: rgba(255,255,255,0.38) !important; }
+      .text-notice   { color: rgba(255,255,255,0.3) !important; }
+      .text-footer   { color: rgba(255,255,255,0.14) !important; }
+      .text-footer2  { color: rgba(255,255,255,0.1) !important; }
+      .text-expiry   { color: rgba(255,255,255,0.22) !important; }
+      .text-expiry-hi{ color: rgba(255,255,255,0.45) !important; }
+      .divider       { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent) !important; }
+      .card-divider  { border-color: rgba(255,255,255,0.06) !important; }
+      .footer-divider{ border-color: rgba(255,255,255,0.05) !important; }
+      .code-box      { background: linear-gradient(135deg,rgba(61,220,132,0.07) 0%%,rgba(61,220,132,0.025) 100%%) !important; border-color: rgba(61,220,132,0.22) !important; }
+      .digit         { color: #3ddc84 !important; background: rgba(61,220,132,0.07) !important; border-color: rgba(61,220,132,0.2) !important; }
+      .step-num-green{ color: #3ddc84 !important; background: rgba(61,220,132,0.1) !important; border-color: rgba(61,220,132,0.22) !important; }
+      .notice-box    { background: rgba(255,255,255,0.025) !important; border-color: rgba(61,220,132,0.3) !important; }
+      .notice-label  { color: rgba(61,220,132,0.45) !important; }
+      .top-line      { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent) !important; }
+      .bottom-line   { background: linear-gradient(90deg,transparent,rgba(61,220,132,0.08),transparent) !important; }
+    }
+  </style>
+</head>
+<body class="email-body" style="margin:0;padding:0;background-color:#f0f4f2;font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased;">
+<table class="email-outer" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f4f2;min-height:100vh;">
+  <tr><td align="center" style="padding:48px 16px 64px;">
+
+    <!-- LOGO -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+      <tr><td align="center">
+        <div style="display:inline-block;width:48px;height:48px;border-radius:50%%;background:rgba(61,220,132,0.15);border:1px solid rgba(61,220,132,0.3);line-height:48px;text-align:center;font-size:22px;margin-bottom:14px;">🌿</div><br/>
+        <span class="text-logo" style="font-family:'Sora',sans-serif;font-size:28px;font-weight:700;color:#0d1610;letter-spacing:-0.03em;">Tree<span style="color:#3ddc84;">CO</span></span>
+      </td></tr>
+    </table>
+
+    <!-- CARD -->
+    <table class="email-card" role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+      style="max-width:560px;width:100%%;background:#ffffff;border:1px solid #e2ede8;border-radius:24px;box-shadow:0 4px 24px rgba(0,0,0,0.06),0 1px 4px rgba(0,0,0,0.04);">
+
+      <!-- TOP LINE -->
+      <tr><td class="top-line" style="height:3px;background:linear-gradient(90deg,transparent,rgba(61,220,132,0.6),transparent);border-radius:24px 24px 0 0;font-size:0;line-height:0;"></td></tr>
+
+      <!-- HEADER -->
+      <tr><td class="email-header" style="padding:32px 44px 28px;background:#f8fcfa;border-bottom:1px solid #e8f0eb;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="vertical-align:middle;">
+            <p class="text-eyebrow" style="margin:0 0 5px;font-family:'DM Mono','Courier New',monospace;font-size:10px;font-weight:500;color:#2a9d5c;letter-spacing:0.16em;text-transform:uppercase;">Verificación de cuenta</p>
+            <p class="text-meta" style="margin:0;font-size:11px;color:#8aa898;font-family:'DM Mono','Courier New',monospace;letter-spacing:0.05em;">treeco.app · no-reply</p>
+          </td>
+          <td align="right" style="vertical-align:middle;">
+            <span style="display:inline-block;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#1e8c4a;letter-spacing:0.14em;text-transform:uppercase;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.35);padding:6px 14px;border-radius:9999px;">● Acción requerida</span>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- GREETING -->
+      <tr><td style="padding:36px 44px 10px;">
+        <p class="text-title" style="margin:0 0 8px;font-size:24px;font-weight:700;color:#0d1f15;letter-spacing:-0.025em;line-height:1.2;">Hola, <span style="color:#3ddc84;">%s</span> 👋</p>
+        <p class="text-body" style="margin:0;font-size:14px;color:#5a7a65;line-height:1.75;">Para completar tu registro en TreeCO, introduce el código de 6 dígitos que aparece a continuación.</p>
+      </td></tr>
+
+      <!-- DIVIDER -->
+      <tr><td style="padding:22px 44px 0;"><div class="divider" style="height:1px;background:linear-gradient(90deg,transparent,#d4e8db,transparent);"></div></td></tr>
+
+      <!-- CODE BLOCK -->
+      <tr><td style="padding:28px 44px 24px;">
+        <table class="code-box" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+          style="background:linear-gradient(135deg,rgba(61,220,132,0.06) 0%%,rgba(61,220,132,0.02) 100%%);border:1px solid rgba(61,220,132,0.25);border-radius:18px;">
+          <tr><td align="center" style="padding:36px 24px 32px;">
+            <p style="margin:0 0 20px;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#2a9d5c;letter-spacing:0.2em;text-transform:uppercase;">Código de verificación</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%2$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%3$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%4$c</span></td>
+              <td style="padding:0 6px;vertical-align:middle;font-size:20px;color:rgba(61,220,132,0.4);">·</td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%5$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%6$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%7$c</span></td>
+            </tr></table>
+            <p class="text-expiry" style="margin:22px 0 0;font-family:'DM Mono','Courier New',monospace;font-size:11px;color:#8aa898;">Expira en <span class="text-expiry-hi" style="color:#3d6650;font-weight:500;">10 minutos</span> · Uso único</p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- STEPS -->
+      <tr><td style="padding:0 44px 28px;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td style="padding:0 0 10px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:3px;"><span class="step-num-green" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.3);font-family:'DM Mono',monospace;font-size:9px;color:#1e8c4a;font-weight:500;">1</span></td>
+            <td class="text-step" style="font-size:13px;color:#5a7a65;line-height:1.6;">Abre TreeCO y dirígete a la pantalla de verificación</td>
+          </tr></table></td></tr>
+          <tr><td style="padding:0 0 10px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:3px;"><span class="step-num-green" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.3);font-family:'DM Mono',monospace;font-size:9px;color:#1e8c4a;font-weight:500;">2</span></td>
+            <td class="text-step" style="font-size:13px;color:#5a7a65;line-height:1.6;">Introduce los 6 dígitos del código de arriba</td>
+          </tr></table></td></tr>
+          <tr><td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:3px;"><span class="step-num-green" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.3);font-family:'DM Mono',monospace;font-size:9px;color:#1e8c4a;font-weight:500;">3</span></td>
+            <td class="text-step" style="font-size:13px;color:#5a7a65;line-height:1.6;">Tu cuenta quedará activada al instante ✓</td>
+          </tr></table></td></tr>
+        </table>
+      </td></tr>
+
+      <!-- DIVIDER -->
+      <tr><td style="padding:0 44px 24px;"><div class="divider" style="height:1px;background:linear-gradient(90deg,transparent,#d4e8db,transparent);"></div></td></tr>
+
+      <!-- NOTICE -->
+      <tr><td style="padding:0 44px 32px;">
+        <table class="notice-box" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+          style="background:#f2faf5;border-radius:12px;border-left:3px solid rgba(61,220,132,0.5);">
+          <tr><td style="padding:16px 20px;">
+            <p class="notice-label" style="margin:0 0 4px;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#2a9d5c;letter-spacing:0.14em;text-transform:uppercase;">Nota de seguridad</p>
+            <p class="text-notice" style="margin:0;font-size:12px;color:#6a8c76;line-height:1.7;">Si no has creado ninguna cuenta en TreeCO, puedes ignorar este mensaje con total seguridad.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- FOOTER -->
+      <tr><td style="padding:20px 44px 28px;border-top:1px solid #e8f0eb;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td><p class="text-footer" style="margin:0;font-size:11px;font-family:'DM Mono','Courier New',monospace;color:#9ab8a4;letter-spacing:0.04em;">Tree<span style="color:#3ddc84;">CO</span> · treeco.support@gmail.com</p></td>
+          <td align="right"><p class="text-footer2" style="margin:0;font-size:10px;font-family:'DM Mono','Courier New',monospace;color:#b8ccc0;">© 2025 TreeCO</p></td>
+        </tr></table>
+      </td></tr>
+
+      <!-- BOTTOM LINE -->
+      <tr><td class="bottom-line" style="height:3px;background:linear-gradient(90deg,transparent,rgba(61,220,132,0.4),transparent);border-radius:0 0 24px 24px;font-size:0;line-height:0;"></td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
+""".formatted(username, d[0], d[1], d[2], d[3], d[4], d[5]);
+	}
+
+	private String buildPasswordResetHtml(String username, String code) {
+		Object[] d = splitDigits(code);
+		return """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Restablecer contraseña — TreeCO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .email-body    { background-color: #050a08 !important; }
+      .email-outer   { background-color: #050a08 !important; }
+      .email-card    { background: linear-gradient(160deg,rgba(255,255,255,0.05) 0%%,rgba(255,255,255,0.018) 100%%) !important; border-color: rgba(255,255,255,0.11) !important; }
+      .email-header  { background: radial-gradient(ellipse 100%% 160%% at 50%% 0%%,rgba(255,190,60,0.07) 0%%,transparent 60%%) !important; border-color: rgba(255,255,255,0.07) !important; }
+      .text-logo     { color: rgba(255,255,255,0.92) !important; }
+      .text-eyebrow  { color: rgba(255,190,60,0.65) !important; }
+      .text-meta     { color: rgba(255,255,255,0.22) !important; }
+      .text-title    { color: rgba(255,255,255,0.92) !important; }
+      .text-body     { color: rgba(255,255,255,0.4) !important; }
+      .text-body strong { color: rgba(255,255,255,0.75) !important; }
+      .text-step     { color: rgba(255,255,255,0.35) !important; }
+      .text-steps-label { color: rgba(255,255,255,0.2) !important; }
+      .text-notice   { color: rgba(255,255,255,0.28) !important; }
+      .text-footer   { color: rgba(255,255,255,0.14) !important; }
+      .text-footer2  { color: rgba(255,255,255,0.1) !important; }
+      .text-expiry   { color: rgba(255,255,255,0.22) !important; }
+      .text-expiry-hi{ color: rgba(255,255,255,0.45) !important; }
+      .divider       { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent) !important; }
+      .footer-divider{ border-color: rgba(255,255,255,0.05) !important; }
+      .code-box      { background: linear-gradient(135deg,rgba(61,220,132,0.06) 0%%,rgba(61,220,132,0.02) 100%%) !important; border-color: rgba(61,220,132,0.2) !important; }
+      .digit         { color: #3ddc84 !important; background: rgba(61,220,132,0.07) !important; border-color: rgba(61,220,132,0.2) !important; }
+      .step-num-amber{ color: #ffbe3c !important; background: rgba(255,190,60,0.08) !important; border-color: rgba(255,190,60,0.2) !important; }
+      .notice-box    { background: rgba(255,190,60,0.03) !important; border-color: rgba(255,190,60,0.35) !important; }
+      .notice-label  { color: rgba(255,190,60,0.5) !important; }
+      .top-line      { background: linear-gradient(90deg,transparent,rgba(255,190,60,0.35),transparent) !important; }
+      .bottom-line   { background: linear-gradient(90deg,transparent,rgba(255,190,60,0.08),transparent) !important; }
+    }
+  </style>
+</head>
+<body class="email-body" style="margin:0;padding:0;background-color:#faf8f0;font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased;">
+<table class="email-outer" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf8f0;min-height:100vh;">
+  <tr><td align="center" style="padding:48px 16px 64px;">
+
+    <!-- LOGO -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+      <tr><td align="center">
+        <div style="display:inline-block;width:48px;height:48px;border-radius:50%%;background:rgba(255,190,60,0.15);border:1px solid rgba(255,190,60,0.35);line-height:48px;text-align:center;font-size:22px;margin-bottom:14px;">🔑</div><br/>
+        <span class="text-logo" style="font-family:'Sora',sans-serif;font-size:28px;font-weight:700;color:#1a1408;letter-spacing:-0.03em;">Tree<span style="color:#3ddc84;">CO</span></span>
+      </td></tr>
+    </table>
+
+    <!-- CARD -->
+    <table class="email-card" role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
+      style="max-width:560px;width:100%%;background:#ffffff;border:1px solid #ede8d6;border-radius:24px;box-shadow:0 4px 24px rgba(0,0,0,0.06),0 1px 4px rgba(0,0,0,0.04);">
+
+      <!-- TOP LINE — amber -->
+      <tr><td class="top-line" style="height:3px;background:linear-gradient(90deg,transparent,rgba(255,190,60,0.7),transparent);border-radius:24px 24px 0 0;font-size:0;line-height:0;"></td></tr>
+
+      <!-- HEADER -->
+      <tr><td class="email-header" style="padding:32px 44px 28px;background:#fdfaf0;border-bottom:1px solid #ede8d6;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="vertical-align:middle;">
+            <p class="text-eyebrow" style="margin:0 0 5px;font-family:'DM Mono','Courier New',monospace;font-size:10px;font-weight:500;color:#b87d10;letter-spacing:0.16em;text-transform:uppercase;">Restablecimiento de contraseña</p>
+            <p class="text-meta" style="margin:0;font-size:11px;color:#b8a87a;font-family:'DM Mono','Courier New',monospace;letter-spacing:0.05em;">treeco.app · seguridad</p>
+          </td>
+          <td align="right" style="vertical-align:middle;">
+            <span style="display:inline-block;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#a06010;letter-spacing:0.14em;text-transform:uppercase;background:rgba(255,190,60,0.15);border:1px solid rgba(255,190,60,0.45);padding:6px 14px;border-radius:9999px;">⚠ Seguridad</span>
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- GREETING -->
+      <tr><td style="padding:36px 44px 10px;">
+        <p class="text-title" style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1408;letter-spacing:-0.025em;line-height:1.2;">Restablecer contraseña 🔑</p>
+        <p class="text-body" style="margin:0;font-size:14px;color:#7a6a40;line-height:1.75;">Hola, <strong style="color:#3d2e08;font-weight:600;">%s</strong>. Hemos recibido una solicitud para restablecer la contraseña de tu cuenta TreeCO.</p>
+      </td></tr>
+
+      <!-- DIVIDER -->
+      <tr><td style="padding:22px 44px 0;"><div class="divider" style="height:1px;background:linear-gradient(90deg,transparent,#e8dfc0,transparent);"></div></td></tr>
+
+      <!-- CODE BLOCK -->
+      <tr><td style="padding:28px 44px 24px;">
+        <table class="code-box" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+          style="background:linear-gradient(135deg,rgba(61,220,132,0.06) 0%%,rgba(61,220,132,0.02) 100%%);border:1px solid rgba(61,220,132,0.22);border-radius:18px;">
+          <tr><td align="center" style="padding:36px 24px 32px;">
+            <p style="margin:0 0 20px;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#2a9d5c;letter-spacing:0.2em;text-transform:uppercase;">Código de recuperación</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%2$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%3$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%4$c</span></td>
+              <td style="padding:0 6px;vertical-align:middle;font-size:20px;color:rgba(61,220,132,0.4);">·</td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%5$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%6$c</span></td>
+              <td style="padding:0 4px;"><span class="digit" style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-family:'DM Mono','Courier New',monospace;font-size:28px;font-weight:500;color:#1a7a40;background:rgba(61,220,132,0.1);border:1px solid rgba(61,220,132,0.25);border-radius:10px;">%7$c</span></td>
+            </tr></table>
+            <p class="text-expiry" style="margin:22px 0 0;font-family:'DM Mono','Courier New',monospace;font-size:11px;color:#a89870;">Expira en <span class="text-expiry-hi" style="color:#5a4a20;font-weight:500;">10 min</span> · Solo puede usarse <span class="text-expiry-hi" style="color:#5a4a20;font-weight:500;">una vez</span></p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- STEPS -->
+      <tr><td style="padding:0 44px 28px;">
+        <p class="text-steps-label" style="margin:0 0 14px;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#b8a060;letter-spacing:0.14em;text-transform:uppercase;">¿Qué ocurre después?</p>
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td style="padding:0 0 10px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:2px;"><span class="step-num-amber" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(255,190,60,0.15);border:1px solid rgba(255,190,60,0.35);font-family:'DM Mono',monospace;font-size:9px;color:#a06010;font-weight:500;">1</span></td>
+            <td class="text-step" style="font-size:13px;color:#7a6a40;line-height:1.6;">Introduce el código en la pantalla de recuperación</td>
+          </tr></table></td></tr>
+          <tr><td style="padding:0 0 10px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:2px;"><span class="step-num-amber" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(255,190,60,0.15);border:1px solid rgba(255,190,60,0.35);font-family:'DM Mono',monospace;font-size:9px;color:#a06010;font-weight:500;">2</span></td>
+            <td class="text-step" style="font-size:13px;color:#7a6a40;line-height:1.6;">Establece tu nueva contraseña (mín. 8 caracteres)</td>
+          </tr></table></td></tr>
+          <tr><td><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="padding-right:12px;vertical-align:top;padding-top:2px;"><span class="step-num-amber" style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%%;background:rgba(255,190,60,0.15);border:1px solid rgba(255,190,60,0.35);font-family:'DM Mono',monospace;font-size:9px;color:#a06010;font-weight:500;">3</span></td>
+            <td class="text-step" style="font-size:13px;color:#7a6a40;line-height:1.6;">Accede normalmente con tus nuevas credenciales ✓</td>
+          </tr></table></td></tr>
+        </table>
+      </td></tr>
+
+      <!-- DIVIDER -->
+      <tr><td style="padding:0 44px 24px;"><div class="divider" style="height:1px;background:linear-gradient(90deg,transparent,#e8dfc0,transparent);"></div></td></tr>
+
+      <!-- NOTICE -->
+      <tr><td style="padding:0 44px 32px;">
+        <table class="notice-box" role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+          style="background:#fffbf0;border-radius:12px;border-left:3px solid rgba(255,190,60,0.6);">
+          <tr><td style="padding:16px 20px;">
+            <p class="notice-label" style="margin:0 0 4px;font-family:'DM Mono','Courier New',monospace;font-size:9px;font-weight:500;color:#b87d10;letter-spacing:0.14em;text-transform:uppercase;">⚠ Aviso de seguridad</p>
+            <p class="text-notice" style="margin:0;font-size:12px;color:#8a7040;line-height:1.7;">Si no has solicitado este cambio, ignora este mensaje. Tu contraseña actual no se modificará y tu cuenta permanece segura.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <!-- FOOTER -->
+      <tr><td style="padding:20px 44px 28px;border-top:1px solid #ede8d6;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td><p class="text-footer" style="margin:0;font-size:11px;font-family:'DM Mono','Courier New',monospace;color:#c8b880;letter-spacing:0.04em;">Tree<span style="color:#3ddc84;">CO</span> · treeco.support@gmail.com</p></td>
+          <td align="right"><p class="text-footer2" style="margin:0;font-size:10px;font-family:'DM Mono','Courier New',monospace;color:#d8cc98;">© 2025 TreeCO</p></td>
+        </tr></table>
+      </td></tr>
+
+      <!-- BOTTOM LINE -->
+      <tr><td class="bottom-line" style="height:3px;background:linear-gradient(90deg,transparent,rgba(255,190,60,0.45),transparent);border-radius:0 0 24px 24px;font-size:0;line-height:0;"></td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
+""".formatted(username, d[0], d[1], d[2], d[3], d[4], d[5]);
 	}
 
 	// ════════════════════════════════════════════

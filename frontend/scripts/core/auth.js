@@ -673,6 +673,7 @@
 		 })
 	 
 		 // Step 1 — enviar email
+		 // FIX: comprueba res.ok — antes avanzaba al step 2 aunque el servidor fallase
 		 btnSend.addEventListener("click", async () => {
 			 const email = emailInput.value.trim()
 			 if (!email || !/^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(email)) {
@@ -684,11 +685,16 @@
 			 modalClearError(error1)
 			 modalSetLoading(btnSend, true)
 			 try {
-				 await fetch(MODAL_API + "/auth/password-reset/request", {
+				 const res = await fetch(MODAL_API + "/auth/password-reset/request", {
 					 method: "POST",
 					 headers: { "Content-Type": "application/json" },
 					 body: JSON.stringify({ email }),
 				 })
+				 const data = await res.json()
+				 if (!res.ok) {
+					 modalShowError(error1, data.error || "No se pudo enviar el código")
+					 return
+				 }
 				 currentEmail = email
 				 emailDisplay.textContent = email
 				 if (resendTimer) clearInterval(resendTimer)

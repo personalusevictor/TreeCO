@@ -99,5 +99,126 @@ header .user .username button {
 header .user .username button:hover {
   color: var(--color-text-primary);
   transition: all var(--duration-fast) var(--ease-smooth);
-	cursor: pointer;
+  cursor: pointer;
+}
+
+@media (max-width: 1270px) {
+  header {
+    padding: var(--space-4) var(--space-4);
+    gap: 1rem;
+  }
+
+  header .logo .logo-name {
+    font-size: 1.3rem;
+  }
+
+  header .navegator {
+    gap: 1rem;
+    justify-content: center;
+    flex: 1;
+  }
+
+  header nav .link,
+  header nav .link-active {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.7rem;
+  }
+
+  header .user .username h2 {
+    font-size: 1rem;
+  }
+
+  header .user .username button {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 828px) {
+  header {
+    position: relative;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  header .logo {
+    justify-content: center;
+  }
+
+  header .logo .logo-img {
+    width: 28px;
+    height: 28px;
+  }
+
+  header .logo .logo-name {
+    font-size: 1.2rem;
+  }
+
+  header .navegator {
+    width: 100%;
+    gap: 0.6rem;
+    justify-content: center;
+  }
+
+  header nav .link,
+  header nav .link-active {
+    justify-content: center;
+    flex: 1 1 50%;
+    min-width: 140px;
+    padding: 0.75rem 0.9rem;
+  }
+
+  header .user {
+    justify-content: center;
+  }
+
+  header .user .user-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  header .user .username {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  header .user .username h2 {
+    font-size: 0.95rem;
+  }
+
+  header .user .username button {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 622px) {
+  header {
+    padding: 0.85rem;
+  }
+
+  header .navegator {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  header nav .link,
+  header nav .link-active {
+    width: 100%;
+  }
+
+  header .user {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  header .user .username {
+    align-items: flex-start;
+  }
+
+  header .logo .logo-name {
+    font-size: 1.05rem;
+  }
 }

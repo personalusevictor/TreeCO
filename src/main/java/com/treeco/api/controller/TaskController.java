@@ -14,8 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -40,7 +40,6 @@ public class TaskController {
     public record TaskRequest(
         String title,
         String description,
-        Priority priority,
         LocalDate dateDeadline,
         Integer assignedToId
     ) {}
@@ -48,7 +47,6 @@ public class TaskController {
     public record TaskUpdateRequest(
         String title,
         String description,
-        Priority priority,
         LocalDate dateDeadline,
         Boolean completed,
         Integer assignedToId      // null = no cambiar, -1 = desasignar
@@ -96,7 +94,7 @@ public class TaskController {
             if (orderByDate) {
                 tasks = taskRepository.findByProjectIdOrderByDateDeadlineAsc(projectId);
             } else if (priority != null) {
-                tasks = taskRepository.findByProjectIdAndPriority(projectId, priority);
+                tasks = taskRepository.findByProjectId(projectId);
             } else {
                 tasks = taskRepository.findByProjectId(projectId);
             }
@@ -136,7 +134,6 @@ public class TaskController {
 
             Task task = Task.builder(request.title())
                     .description(request.description())
-                    .priority(request.priority())
                     .deadline(request.dateDeadline())
                     .eventType(request.dateDeadline() != null ? EventType.DEADLINE : EventType.REMINDER)
                     .build();
@@ -168,10 +165,11 @@ public class TaskController {
             findProjectOrThrow(projectId);
             Task task = findTaskOrThrow(taskId, projectId);
 
-            if (request.title() != null)       task.setTitle(request.title());
-            if (request.description() != null) task.setDescription(request.description());
-            if (request.priority() != null)    task.setPriority(request.priority());
-            if (request.dateDeadline() != null) {
+            if (request.title() != null)
+                task.setTitle(request.title());
+            if (request.description() != null)
+                task.setDescription(request.description());
+            if (request.dateDeadline() != null)
                 task.setDateDeadline(request.dateDeadline());
                 if (task.getEventType() == EventType.REMINDER) {
                     task.setEventType(EventType.DEADLINE);

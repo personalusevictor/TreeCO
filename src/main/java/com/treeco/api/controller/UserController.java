@@ -3,6 +3,7 @@ package com.treeco.api.controller;
 import com.treeco.api.dto.user.*;
 import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
+import com.treeco.api.service.TaskService;
 import com.treeco.api.service.UserService;
 import com.treeco.api.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -124,8 +125,7 @@ public class UserController {
     @GetMapping("/{id}/tasks")
     public ResponseEntity<?> getAllUserTasks(@PathVariable Integer id) {
         try {
-            List<Task> tasks = userService.findById(id).getAllTasks();
-            return ResponseEntity.ok(tasks);
+            return ResponseEntity.ok(taskService.getTaskDtosByUserId(id));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));

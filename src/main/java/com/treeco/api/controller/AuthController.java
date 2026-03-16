@@ -23,35 +23,17 @@ public class AuthController {
         this.tokenEmailService = tokenEmailService;
     }
 
-    // ── DTOs ────────────────────────────────────
-    public record SendRegisterCodeRequest(String username, String email, String password) {
-    }
-
-    public record ConfirmRegisterRequest(String email, String code) {
-    }
-
-    public record LoginRequest(String email, String password) {
-    }
-
-    public record PasswordResetRequestBody(String email) {
-    }
-
-    public record ValidateResetTokenBody(String code) {
-    }
-
-    public record ConfirmResetBody(String code, String newPassword) {
-    }
+    public record SendRegisterCodeRequest(String username, String email, String password) {}
+    public record ConfirmRegisterRequest(String email, String code) {}
+    public record LoginRequest(String email, String password) {}
+    public record PasswordResetRequestBody(String email) {}
+    public record ValidateResetTokenBody(String code) {}
+    public record ConfirmResetBody(String code, String newPassword) {}
 
     // ════════════════════════════════════════════
-    // REGISTRO — paso 1: enviar código
+    // REGISTRO
     // ════════════════════════════════════════════
 
-    /**
-     * POST /auth/register/send-code
-     * Valida los datos, guarda un "pending registration" en el servicio
-     * y envía el código de 6 dígitos al email.
-     * La cuenta NO se crea todavía.
-     */
     @PostMapping("/register/send-code")
     public ResponseEntity<?> sendRegisterCode(@RequestBody SendRegisterCodeRequest request) {
         try {
@@ -63,15 +45,11 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(Map.of("error", "El email ya está registrado"));
             }
-
             tokenEmailService.sendRegistrationCode(
                     request.username().trim(),
                     request.email().trim(),
                     request.password());
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Código enviado. Revisa tu email."));
-
+            return ResponseEntity.ok(Map.of("message", "Código enviado. Revisa tu email."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
@@ -81,15 +59,6 @@ public class AuthController {
         }
     }
 
-    // ════════════════════════════════════════════
-    // REGISTRO — paso 2: confirmar código y crear cuenta
-    // ════════════════════════════════════════════
-
-    /**
-     * POST /auth/register/confirm
-     * Body: { "email": "...", "code": "123456" }
-     * Verifica el código y, si es correcto, crea la cuenta definitivamente.
-     */
     @PostMapping("/register/confirm")
     public ResponseEntity<?> confirmRegister(@RequestBody ConfirmRegisterRequest request) {
         if (request.email() == null || request.code() == null) {
@@ -100,13 +69,11 @@ public class AuthController {
             User newUser = tokenEmailService.confirmRegistration(
                     request.email().trim(),
                     request.code().trim());
-
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "message", "Cuenta creada correctamente",
                     "userId", newUser.getId(),
                     "username", newUser.getUsername(),
                     "email", newUser.getEmail()));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
@@ -116,14 +83,6 @@ public class AuthController {
         }
     }
 
-    // ════════════════════════════════════════════
-    // REENVIAR código de registro
-    // ════════════════════════════════════════════
-
-    /**
-     * POST /auth/register/resend-code
-     * Body: { "email": "..." }
-     */
     @PostMapping("/register/resend-code")
     public ResponseEntity<?> resendRegisterCode(@RequestBody Map<String, String> body) {
         String email = body.get("email");
@@ -147,9 +106,6 @@ public class AuthController {
     // LOGIN
     // ════════════════════════════════════════════
 
-    /**
-     * POST /auth/login
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
@@ -157,21 +113,17 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "Email y contraseña son obligatorios"));
             }
-
             Optional<User> userOpt = userRepository.findByEmailIgnoreCase(request.email());
-
             if (userOpt.isEmpty() || !userOpt.get().checkPassword(request.password())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Credenciales incorrectas"));
             }
-
             User user = userOpt.get();
             return ResponseEntity.ok(Map.of(
                     "message", "Login correcto",
                     "userId", user.getId(),
                     "username", user.getUsername(),
                     "email", user.getEmail()));
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error inesperado"));
@@ -179,12 +131,14 @@ public class AuthController {
     }
 
     // ════════════════════════════════════════════
-    // RECUPERAR CONTRASEÑA
+    // RESET DE CONTRASEÑA
     // ════════════════════════════════════════════
 
     /**
-     * POST /auth/password-reset/request
-     * Siempre devuelve 200 (no revela si el email existe).
+     * FIX: eliminado "catch (Exception ignored)" que tragaba el error del email
+     * y devolvía 200 aunque el código nunca se hubiese enviado.
+     * Ahora distingue entre "email no existe" (200 silencioso, por seguridad)
+     * y "fallo al enviar" (500 real).
      */
     @PostMapping("/password-reset/request")
     public ResponseEntity<?> requestPasswordReset(@RequestBody PasswordResetRequestBody body) {
@@ -194,17 +148,15 @@ public class AuthController {
         }
         try {
             tokenEmailService.sendPasswordResetEmail(body.email().trim());
-        } catch (Exception ignored) {
+            return ResponseEntity.ok(Map.of(
+                    "message", "Si ese email está registrado, recibirás un código en breve"));
+        } catch (RuntimeException e) {
+            // El email existe pero falló el envío del correo
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "No se pudo enviar el email. Inténtalo de nuevo."));
         }
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Si ese email está registrado, recibirás un código en breve"));
     }
 
-    /**
-     * POST /auth/password-reset/validate
-     * Body: { "code": "123456" }
-     */
     @PostMapping("/password-reset/validate")
     public ResponseEntity<?> validateResetToken(@RequestBody ValidateResetTokenBody body) {
         if (body.code() == null || body.code().isBlank()) {
@@ -220,10 +172,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * POST /auth/password-reset/confirm
-     * Body: { "code": "123456", "newPassword": "..." }
-     */
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<?> confirmPasswordReset(@RequestBody ConfirmResetBody body) {
         if (body.code() == null || body.code().isBlank()) {

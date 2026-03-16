@@ -1,6 +1,7 @@
 package com.treeco.api.model;
 
-import java.time.LocalDate;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -10,7 +11,21 @@ import com.treeco.api.model.enums.EventType;
 import com.treeco.api.model.enums.Priority;
 import com.treeco.api.model.enums.State;
 import com.treeco.api.model.enums.TaskType;
-import jakarta.persistence.*;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "task")
@@ -26,13 +41,13 @@ public class Task {
     private String description;
 
     @Column(nullable = false)
-    private final LocalDate dateCreation;
+    private final LocalDateTime dateCreation;
 
     @Column(nullable = false)
-    private LocalDate dateDeadline;
+    private LocalDateTime dateDeadline;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Transient
     private Priority priority;
 
     @Column(nullable = false)
@@ -68,8 +83,7 @@ public class Task {
 
         // Opcionales (valores por defecto)
         private String description = "";
-        private LocalDate dateDeadline = null;
-        private Priority priority = Priority.MID;
+        private LocalDateTime dateDeadline = null;
         private TaskType type = TaskType.NORMAL;
         private User assignedTo = null;
         private EventType eventType = EventType.REMINDER;  // valor por defecto
@@ -86,13 +100,8 @@ public class Task {
             return this;
         }
 
-        public Builder deadline(LocalDate dateDeadline) {
+        public Builder deadline(LocalDateTime dateDeadline) {
             this.dateDeadline = dateDeadline;
-            return this;
-        }
-
-        public Builder priority(Priority priority) {
-            this.priority = (priority == null) ? Priority.MID : priority;
             return this;
         }
 
@@ -121,7 +130,7 @@ public class Task {
     }
 
     public Task() {
-        this.dateCreation = LocalDate.now();
+        this.dateCreation = LocalDateTime.now();
         this.completed = false;
         this.type = TaskType.NORMAL;
         this.eventType = EventType.REMINDER;
@@ -130,9 +139,8 @@ public class Task {
     private Task(Builder builder) {
         this.title = builder.title;
         this.description = builder.description;
-        this.dateCreation = LocalDate.now();
+        this.dateCreation = LocalDateTime.now();
         this.dateDeadline = builder.dateDeadline;
-        this.priority = builder.priority;
         this.type = builder.type;
         this.assignedTo = builder.assignedTo;
         this.eventType = builder.eventType;
@@ -153,7 +161,7 @@ public class Task {
         return description;
     }
 
-    public LocalDate getDateCreation() {
+    public LocalDateTime getDateCreation() {
         return dateCreation;
     }
 
@@ -172,12 +180,8 @@ public class Task {
         this.description = (description == null) ? "" : description.trim();
     }
 
-    public void setDateDeadline(LocalDate dateDeadline) {
+    public void setDateDeadline(LocalDateTime dateDeadline) {
         this.dateDeadline = dateDeadline;
-    }
-
-    public void setPriority(Priority priority) {
-        this.priority = (priority == null) ? Priority.MID : priority;
     }
 
     public void setCompleted(boolean completed) {
@@ -191,12 +195,27 @@ public class Task {
      *         límite
      */
 
-    public LocalDate getDateDeadline() {
+    public LocalDateTime getDateDeadline() {
         return dateDeadline;
     }
 
     public Priority getPriority() {
-        return priority;
+        if (dateDeadline == null) {
+            return Priority.LOW;
+        }
+
+        Duration duration = Duration.between(LocalDateTime.now(), dateDeadline);
+        long daysRemaining = duration.toDays();
+
+        if (daysRemaining <= 3) {
+            return Priority.HIGH;
+        }
+
+        if (daysRemaining <= 7) {
+            return Priority.MID;
+        }
+
+        return Priority.LOW;
     }
 
     public void setProject(Project project) {
@@ -242,13 +261,13 @@ public class Task {
     public boolean isExpired() {
         return !completed
                 && dateDeadline != null
-                && LocalDate.now().isAfter(dateDeadline);
+                && LocalDateTime.now().isAfter(dateDeadline);
     }
 
     public State getState() {
         if (completed) {
             return State.COMPLETED;
-        } else if (dateDeadline != null && LocalDate.now().isAfter(dateDeadline)) {
+        } else if (dateDeadline != null && LocalDateTime.now().isAfter(dateDeadline)) {
             return State.EXPIRED;
         } else {
             return State.IN_PROGRESS;
@@ -262,7 +281,8 @@ public class Task {
      */
 
     public long daysLeft() {
-        return dateDeadline != null ? java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), dateDeadline) : -1;
+        return dateDeadline != null ? java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), dateDeadline)
+                : -1;
     }
 
     public boolean isCompleted() {

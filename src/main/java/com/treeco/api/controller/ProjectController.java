@@ -5,7 +5,6 @@ import com.treeco.api.model.enums.ProjectRole;
 import com.treeco.api.repository.ProjectMemberRepository;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.UserRepository;
-import com.treeco.api.service.ProjectMemberService;
 import com.treeco.api.service.ProjectService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,18 +24,15 @@ public class ProjectController {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final ProjectService projectService;
-    private final ProjectMemberService projectMemberService;
 
     public ProjectController(ProjectRepository projectRepository,
                              ProjectMemberRepository projectMemberRepository,
                              UserRepository userRepository,
-                             ProjectService projectService,
-                             ProjectMemberService projectMemberService) {
+                             ProjectService projectService) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
         this.projectService = projectService;
-        this.projectMemberService = projectMemberService;
     }
 
     public record ProjectRequest(String name, String description, Integer userId) {}
