@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.treeco.api.model.enums.State;
 import jakarta.persistence.*;
@@ -32,8 +33,14 @@ public class Project {
     private User user;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private List<Task> tasks;
+
+    // Cascade para que al borrar el proyecto se borren sus miembros
+    // @JsonIgnore evita el bucle Project → members → ProjectMember → project → ...
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<ProjectMember> members = new ArrayList<>();
 
     public Project() {
         this.creationDate = LocalDateTime.now();
@@ -97,8 +104,6 @@ public class Project {
         return (getCompletedTasks().size() * 100) / this.tasks.size();
     }
 
-    // FIXED: devuelve Integer en lugar de int para consistencia con JPA y evitar
-    // NPE
     public Integer getId() {
         return id;
     }
@@ -146,7 +151,6 @@ public class Project {
         return String.format("id: %d%n Name: %s%n Description: %s%n Tasks: %s%n", id, name, description, tasks);
     }
 
-    // FIXED: usaba 'id' como int primitivo → NPE si id es null antes de persistir
     @Override
     public int hashCode() {
         return Objects.hashCode(id);

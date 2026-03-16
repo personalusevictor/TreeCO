@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.treeco.api.model.enums.EventType;
 import com.treeco.api.model.enums.Priority;
@@ -59,6 +60,7 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "projects", "hashPassword"})
     private User assignedTo;
 
     @Enumerated(EnumType.STRING)
@@ -84,7 +86,7 @@ public class Task {
         private LocalDateTime dateDeadline = null;
         private TaskType type = TaskType.NORMAL;
         private User assignedTo = null;
-        private EventType eventType;
+        private EventType eventType = EventType.REMINDER;  // valor por defecto
 
         public Builder(String title) {
             if (title == null || title.trim().isEmpty()) {
@@ -131,6 +133,7 @@ public class Task {
         this.dateCreation = LocalDateTime.now();
         this.completed = false;
         this.type = TaskType.NORMAL;
+        this.eventType = EventType.REMINDER;
     }
 
     private Task(Builder builder) {
@@ -288,6 +291,14 @@ public class Task {
 
     public boolean isCodeTask() {
         return type == TaskType.CODE && codeTask != null;
+    }
+
+    public EventType getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(EventType eventType) {
+        this.eventType = eventType;
     }
 
     public boolean isAssigned() {

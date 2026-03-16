@@ -5,10 +5,11 @@ import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
 import com.treeco.api.model.enums.State;
 import com.treeco.api.repository.ProjectRepository;
+import com.treeco.api.repository.TaskRepository;
 import com.treeco.api.repository.UserRepository;
-import com.treeco.api.repository.ProjectMemberRepository;
 import com.treeco.api.model.ProjectMember;
 import com.treeco.api.model.enums.ProjectRole;
+import com.treeco.api.repository.ProjectMemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,27 +22,25 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final TaskRepository taskRepository;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
-                          ProjectMemberRepository projectMemberRepository) {
+                          ProjectMemberRepository projectMemberRepository,
+                          TaskRepository taskRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.projectMemberRepository = projectMemberRepository;
+        this.taskRepository = taskRepository;
     }
 
     // ── CONSULTAS ─────────────────────────────────────────────────────
 
-    /**
-     * Devuelve todos los proyectos.
-     */
     public List<Project> getProjects() {
         return projectRepository.findAll();
     }
 
     /**
-     * Busca un proyecto por ID.
-     * 
      * @throws NoSuchElementException si no existe
      */
     public Project findById(Integer id) {
@@ -50,8 +49,6 @@ public class ProjectService {
     }
 
     /**
-     * Devuelve todos los proyectos de un usuario.
-     * 
      * @throws NoSuchElementException si el usuario no existe
      */
     public List<Project> getProjectsByUser(Integer userId) {
@@ -61,26 +58,30 @@ public class ProjectService {
         return projectRepository.findByUserId(userId);
     }
 
-    /**
-     * Devuelve el porcentaje de progreso de un proyecto (tareas completadas /
-     * total).
-     */
     public int getProgress(Integer projectId) {
         return findById(projectId).getProgress();
     }
 
     /**
-     * Devuelve las tareas de un proyecto filtradas por estado.
+     * Consulta las tareas filtradas por estado directamente en la BD,
+     * en vez de cargar todo el proyecto en memoria.
+     *
+     * @throws NoSuchElementException si el proyecto no existe
      */
     public List<Task> getTasksByState(Integer projectId, State state) {
-        return findById(projectId).getTasksByState(state);
+        if (!projectRepository.existsById(projectId)) {
+            throw new NoSuchElementException("Proyecto no encontrado con id: " + projectId);
+        }
+        return taskRepository.findByProjectId(projectId).stream()
+                .filter(t -> t.getState() == state)
+                .toList();
     }
 
     // ── CREAR / ACTUALIZAR / ELIMINAR ─────────────────────────────────
 
     /**
-     * Crea un nuevo proyecto asociado a un usuario.
-     * 
+     * Crea un proyecto y registra al creador como OWNER.
+     *
      * @throws NoSuchElementException si el usuario no existe
      */
     @Transactional
@@ -92,7 +93,7 @@ public class ProjectService {
         project.setUser(user);
         projectRepository.save(project);
 
-        // El creador es automáticamente miembro OWNER
+        // Usa el constructor canónico de ProjectMember — única fuente de verdad
         ProjectMember owner = new ProjectMember(project, user, ProjectRole.OWNER);
         projectMemberRepository.save(owner);
 
@@ -100,9 +101,8 @@ public class ProjectService {
     }
 
     /**
-     * Actualiza nombre y/o descripción de un proyecto.
-     * 
-     * @throws NoSuchElementException si el proyecto no existe
+     * @throws NoSuchElementException   si el proyecto no existe
+     * @throws IllegalArgumentException si el nombre es nulo o vacío
      */
     @Transactional
     public Project updateProject(Integer projectId, String newName, String newDescription) {
@@ -119,9 +119,7 @@ public class ProjectService {
     }
 
     /**
-     * Elimina un proyecto por ID.
-     * 
-     * @throws NoSuchElementException si no existe
+     * @throws NoSuchElementException si el proyecto no existe
      */
     @Transactional
     public void deleteProject(Integer projectId) {

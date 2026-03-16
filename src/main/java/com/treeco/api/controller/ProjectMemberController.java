@@ -1,6 +1,5 @@
 package com.treeco.api.controller;
 
-import com.treeco.api.model.ProjectMember;
 import com.treeco.api.model.enums.ProjectRole;
 import com.treeco.api.service.ProjectMemberService;
 import org.springframework.http.HttpStatus;
@@ -21,23 +20,21 @@ public class ProjectMemberController {
         this.memberService = memberService;
     }
 
-    public record AddMemberRequest(Integer userId, ProjectRole role, Integer invitedByUserId) {
-    }
-
-    public record ChangeRoleRequest(ProjectRole newRole) {
-    }
-
-    public record TransferOwnershipRequest(Integer currentOwnerId, Integer newOwnerId) {
-    }
+    public record AddMemberRequest(Integer userId, ProjectRole role, Integer invitedByUserId) {}
+    public record ChangeRoleRequest(ProjectRole newRole) {}
+    public record TransferOwnershipRequest(Integer currentOwnerId, Integer newOwnerId) {}
 
     // GET /projects/{projectId}/members
     @GetMapping
     public ResponseEntity<?> getMembers(@PathVariable Integer projectId,
             @RequestParam(required = false) ProjectRole role) {
         try {
-            List<ProjectMember> members = role != null
+            List<ProjectMemberResponse> members = (role != null
                     ? memberService.getMembersByRole(projectId, role)
-                    : memberService.getMembersByProject(projectId);
+                    : memberService.getMembersByProject(projectId))
+                    .stream()
+                    .map(ProjectMemberResponse::from)
+                    .toList();
             return ResponseEntity.ok(members);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -67,8 +64,8 @@ public class ProjectMemberController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "Los campos 'userId', 'role' e 'invitedByUserId' son obligatorios"));
             }
-            ProjectMember member = memberService.addMember(
-                    projectId, request.userId(), request.role(), request.invitedByUserId());
+            ProjectMemberResponse member = ProjectMemberResponse.from(
+                    memberService.addMember(projectId, request.userId(), request.role(), request.invitedByUserId()));
             return ResponseEntity.status(HttpStatus.CREATED).body(member);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -89,7 +86,8 @@ public class ProjectMemberController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "El campo 'newRole' es obligatorio"));
             }
-            ProjectMember updated = memberService.changeRole(projectId, userId, request.newRole());
+            ProjectMemberResponse updated = ProjectMemberResponse.from(
+                    memberService.changeRole(projectId, userId, request.newRole()));
             return ResponseEntity.ok(updated);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

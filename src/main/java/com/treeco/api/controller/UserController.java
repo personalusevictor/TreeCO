@@ -5,6 +5,7 @@ import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
 import com.treeco.api.service.TaskService;
 import com.treeco.api.service.UserService;
+import com.treeco.api.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +19,34 @@ import java.util.NoSuchElementException;
 public class UserController {
 
     private final UserService userService;
-    private final TaskService taskService;
+    private final UserRepository userRepository;
 
-    public UserController(UserService userService, TaskService taskService) {
-        this.userService = userService;
-        this.taskService = taskService;
+    public UserController(UserService userService, UserRepository userRepository) {
+        this.userService    = userService;
+        this.userRepository = userRepository;
+    }
+
+    /**
+     * GET /api/users/search?q=victor
+     * Busca usuarios por nombre o email (autocompletado al invitar miembros).
+     * Devuelve solo id, username y email — sin datos sensibles.
+     * Requiere mínimo 2 caracteres para evitar devolver todos los usuarios.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(@RequestParam String q) {
+        if (q == null || q.trim().length() < 2) {
+            return ResponseEntity.ok(List.of());
+        }
+        List<Map<String, Object>> results = userRepository
+                .searchByUsernameOrEmail(q.trim())
+                .stream()
+                .limit(8)
+                .map(u -> Map.<String, Object>of(
+                        "id",       u.getId(),
+                        "username", u.getUsername(),
+                        "email",    u.getEmail()))
+                .toList();
+        return ResponseEntity.ok(results);
     }
 
     // GET /api/users
@@ -113,18 +137,14 @@ public class UserController {
     public ResponseEntity<?> getUserStats(@PathVariable Integer id) {
         try {
             User user = userService.findById(id);
-
             UserStatsResponse stats = new UserStatsResponse();
             stats.setUserId(user.getId());
             stats.setUsername(user.getUsername());
             stats.setTotalProjects(user.getProjects().size());
             stats.setTotalTasks(user.getAllTasks().size());
-            stats.setCompletedTasks((int) user.getAllTasks().stream()
-                    .filter(Task::isCompleted).count());
-            stats.setExpiredTasks((int) user.getAllTasks().stream()
-                    .filter(Task::isExpired).count());
+            stats.setCompletedTasks((int) user.getAllTasks().stream().filter(Task::isCompleted).count());
+            stats.setExpiredTasks((int) user.getAllTasks().stream().filter(Task::isExpired).count());
             stats.setGlobalProgress(user.getGlobalProgress());
-
             return ResponseEntity.ok(stats);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -137,14 +157,12 @@ public class UserController {
     public ResponseEntity<?> getUserProfile(@PathVariable Integer id) {
         try {
             User user = userService.findById(id);
-
             UserProfileResponse profile = new UserProfileResponse();
             profile.setId(user.getId());
             profile.setUsername(user.getUsername());
             profile.setEmail(user.getEmail());
             profile.setProjectCount(user.getProjects().size());
             profile.setTaskCount(user.getAllTasks().size());
-
             return ResponseEntity.ok(profile);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
