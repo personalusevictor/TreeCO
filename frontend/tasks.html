@@ -68,8 +68,12 @@
                     </div>
 
                     <div class="tasksPageActions">
-                        <button id="newTaskButton" class="tasksPageButton tasksPageButtonPrimary" type="button">
-                            + Nueva tarea
+                        <button class="buttonAddTask" id="btn-add-task">
+                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                <path d="M6 1V11M1 6H11" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            Nueva tarea
                         </button>
                     </div>
                 </header>
@@ -139,7 +143,50 @@
                 </section>
             </section>
         </section>
+
     </main>
+    <div id="taskModal" class="taskModal taskModalHidden">
+        <div id="taskModalOverlay" class="taskModalOverlay"></div>
+
+        <div class="taskModalContent">
+            <div class="taskModalHeader">
+                <h2 id="taskModalTitle">Nueva tarea</h2>
+                <button id="closeTaskModalButton" class="taskModalClose" type="button">×</button>
+            </div>
+
+            <form id="taskForm" class="taskModalForm">
+                <input type="hidden" id="taskId" />
+                <input type="hidden" id="taskProjectId" />
+
+                <div class="taskFormGroup">
+                    <label for="taskTitle">Título</label>
+                    <input id="taskTitle" type="text" required />
+                </div>
+
+                <div class="taskFormGroup">
+                    <label for="taskDescription">Descripción</label>
+                    <textarea id="taskDescription" rows="4"></textarea>
+                </div>
+
+                <div class="taskFormGroup">
+                    <label for="taskDeadline">Fecha límite</label>
+                    <input id="taskDeadline" type="datetime-local" />
+                </div>
+
+                <div class="taskFormGroup">
+                    <label for="taskProjectSelect">Proyecto</label>
+                    <select id="taskProjectSelect" required>
+                        <option value="">Selecciona un proyecto</option>
+                    </select>
+                </div>
+
+                <div class="taskModalActions">
+                    <button type="button" id="cancelTaskModalButton">Cancelar</button>
+                    <button type="submit" id="saveTaskButton">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="./components/header/header-component.js" defer></script>
     <script type="module" src="./scripts/pages/tasks.js"></script>

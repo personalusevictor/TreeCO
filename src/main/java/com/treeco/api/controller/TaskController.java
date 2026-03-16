@@ -28,11 +28,10 @@ public class TaskController {
         this.projectRepository = projectRepository;
     }
 
-    public record TaskRequest(String title, String description, Priority priority, LocalDateTime dateDeadline) {
+    public record TaskRequest(String title, String description, LocalDateTime dateDeadline) {
     }
 
-    public record TaskUpdateRequest(String title, String description, Priority priority, LocalDateTime dateDeadline,
-            Boolean completed) {
+    public record TaskUpdateRequest(String title, String description, LocalDateTime dateDeadline, Boolean completed) {
     }
 
     @GetMapping
@@ -47,15 +46,19 @@ public class TaskController {
 
             if (orderByDate) {
                 tasks = taskRepository.findByProjectIdOrderByDateDeadlineAsc(projectId);
-            } else if (priority != null) {
-                tasks = taskRepository.findByProjectId(projectId);
             } else {
                 tasks = taskRepository.findByProjectId(projectId);
             }
 
             if (state != null) {
                 tasks = tasks.stream()
-                        .filter(t -> t.getState() == state)
+                        .filter(task -> task.getState() == state)
+                        .toList();
+            }
+
+            if (priority != null) {
+                tasks = tasks.stream()
+                        .filter(task -> task.getPriority() == priority)
                         .toList();
             }
 
@@ -85,7 +88,7 @@ public class TaskController {
     public ResponseEntity<?> createTask(@PathVariable @NonNull Integer projectId,
             @RequestBody TaskRequest request) {
         try {
-            if (request.title() == null) {
+            if (request.title() == null || request.title().isBlank()) {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "El campo 'title' es obligatorio"));
@@ -124,14 +127,21 @@ public class TaskController {
             findProjectOrThrow(projectId);
             Task task = findTaskOrThrow(taskId, projectId);
 
-            if (request.title() != null)
+            if (request.title() != null) {
                 task.setTitle(request.title());
-            if (request.description() != null)
+            }
+
+            if (request.description() != null) {
                 task.setDescription(request.description());
-            if (request.dateDeadline() != null)
+            }
+
+            if (request.dateDeadline() != null) {
                 task.setDateDeadline(request.dateDeadline());
-            if (request.completed() != null)
+            }
+
+            if (request.completed() != null) {
                 task.setCompleted(request.completed());
+            }
 
             taskRepository.save(task);
             return ResponseEntity.ok(task);
