@@ -47,6 +47,10 @@ public class Task {
     private LocalDateTime dateDeadline;
 
     @Column(nullable = false)
+    @Transient
+    private Priority priority;
+
+    @Column(nullable = false)
     private boolean completed;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,7 +60,7 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
-    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "projects", "hashPassword" })
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "projects", "hashPassword"})
     private User assignedTo;
 
     @Enumerated(EnumType.STRING)
@@ -82,7 +86,7 @@ public class Task {
         private LocalDateTime dateDeadline = null;
         private TaskType type = TaskType.NORMAL;
         private User assignedTo = null;
-        private EventType eventType = EventType.REMINDER; // valor por defecto
+        private EventType eventType = EventType.REMINDER;  // valor por defecto
 
         public Builder(String title) {
             if (title == null || title.trim().isEmpty()) {
@@ -332,7 +336,7 @@ public class Task {
         String typeStr = (type != TaskType.NORMAL) ? " [" + type + "]" : "";
 
         return String.format("[ID: %d] %s%s - %s - %s - Límite: %s%s%s",
-                id, title, typeStr, getState(), getPriority(), deadlineStr, expiredStr, assignedStr);
+                id, title, typeStr, getState(), priority, deadlineStr, expiredStr, assignedStr);
     }
 
     @Override
