@@ -21,4 +21,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
            "LOWER(u.email)    LIKE LOWER(CONCAT('%', :q, '%')) " +
            "ORDER BY u.username ASC")
     List<User> searchByUsernameOrEmail(@Param("q") String q);
+		
+		List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+			String username, String email
+		);
 }

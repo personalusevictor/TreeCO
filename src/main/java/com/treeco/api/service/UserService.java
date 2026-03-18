@@ -12,134 +12,138 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+	public UserService(UserRepository userRepository) {
+		this.userRepository = userRepository;
+	}
 
-    // ── REGISTRO Y AUTENTICACIÓN ──────────────────────────────────────
+	// ── REGISTRO Y AUTENTICACIÓN ──────────────────────────────────────
 
-    /**
-     * Registra un nuevo usuario en la base de datos.
-     * 
-     * @throws IllegalArgumentException si el email ya está registrado
-     */
-    @Transactional
-    public User registerUser(String username, String email, String password) {
-        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
-            throw new IllegalArgumentException("Ese email ya está registrado");
-        }
-        User user = new User(username, email, password);
-        return userRepository.save(user);
-    }
+	/**
+	 * Registra un nuevo usuario en la base de datos.
+	 * 
+	 * @throws IllegalArgumentException si el email ya está registrado
+	 */
+	@Transactional
+	public User registerUser(String username, String email, String password) {
+		if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+			throw new IllegalArgumentException("Ese email ya está registrado");
+		}
+		User user = new User(username, email, password);
+		return userRepository.save(user);
+	}
 
-    /**
-     * Verifica las credenciales de un usuario.
-     * 
-     * @return El usuario autenticado
-     * @throws NoSuchElementException   si el email no existe
-     * @throws IllegalArgumentException si la contraseña es incorrecta
-     */
-    public User authenticate(String email, String password) {
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
+	/**
+	 * Verifica las credenciales de un usuario.
+	 * 
+	 * @return El usuario autenticado
+	 * @throws NoSuchElementException   si el email no existe
+	 * @throws IllegalArgumentException si la contraseña es incorrecta
+	 */
+	public User authenticate(String email, String password) {
+		User user = userRepository.findByEmailIgnoreCase(email)
+				.orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
 
-        if (!user.checkPassword(password)) {
-            throw new IllegalArgumentException("Contraseña incorrecta");
-        }
-        return user;
-    }
+		if (!user.checkPassword(password)) {
+			throw new IllegalArgumentException("Contraseña incorrecta");
+		}
+		return user;
+	}
 
-    // ── CONSULTAS ─────────────────────────────────────────────────────
+	// ── CONSULTAS ─────────────────────────────────────────────────────
 
-    /**
-     * Devuelve todos los usuarios.
-     */
-    public List<User> getUsers() {
-        return userRepository.findAll();
-    }
+	/**
+	 * Devuelve todos los usuarios.
+	 */
+	public List<User> getUsers() {
+		return userRepository.findAll();
+	}
 
-    /**
-     * Busca un usuario por ID.
-     * 
-     * @throws NoSuchElementException si no existe
-     */
-    public User findById(Integer id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado con id: " + id));
-    }
+	/**
+	 * Busca un usuario por ID.
+	 * 
+	 * @throws NoSuchElementException si no existe
+	 */
+	public User findById(Integer id) {
+		return userRepository.findById(id)
+				.orElseThrow(() -> new NoSuchElementException("Usuario no encontrado con id: " + id));
+	}
 
-    /**
-     * Busca un usuario por email (case-insensitive).
-     * 
-     * @throws NoSuchElementException si no existe
-     */
-    public User findByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado con email: " + email));
-    }
+	/**
+	 * Busca un usuario por email (case-insensitive).
+	 * 
+	 * @throws NoSuchElementException si no existe
+	 */
+	public User findByEmail(String email) {
+		return userRepository.findByEmailIgnoreCase(email)
+				.orElseThrow(() -> new NoSuchElementException("Usuario no encontrado con email: " + email));
+	}
 
-    /**
-     * Versión Optional para cuando no queremos lanzar excepción.
-     */
-    public Optional<User> findByEmailOptional(String email) {
-        return userRepository.findByEmailIgnoreCase(email);
-    }
+	/**
+	 * Versión Optional para cuando no queremos lanzar excepción.
+	 */
+	public Optional<User> findByEmailOptional(String email) {
+		return userRepository.findByEmailIgnoreCase(email);
+	}
 
-    // ── MODIFICACIONES ────────────────────────────────────────────────
+	// ── MODIFICACIONES ────────────────────────────────────────────────
 
-    /**
-     * Actualiza username y/o email de un usuario.
-     * 
-     * @throws IllegalArgumentException si el nuevo email ya está en uso por otro
-     *                                  usuario
-     */
-    @Transactional
-    public User updateUser(Integer id, String newUsername, String newEmail) {
-        User user = findById(id);
+	/**
+	 * Actualiza username y/o email de un usuario.
+	 * 
+	 * @throws IllegalArgumentException si el nuevo email ya está en uso por otro
+	 *                                  usuario
+	 */
+	@Transactional
+	public User updateUser(Integer id, String newUsername, String newEmail) {
+		User user = findById(id);
 
-        if (newUsername != null && !newUsername.isBlank()) {
-            user.setUsername(newUsername);
-        }
+		if (newUsername != null && !newUsername.isBlank()) {
+			user.setUsername(newUsername);
+		}
 
-        if (newEmail != null && !newEmail.isBlank()) {
-            Optional<User> conflict = userRepository.findByEmailIgnoreCase(newEmail);
-            if (conflict.isPresent() && !conflict.get().getId().equals(id)) {
-                throw new IllegalArgumentException("El email ya está en uso por otro usuario");
-            }
-            user.setEmail(newEmail);
-        }
+		if (newEmail != null && !newEmail.isBlank()) {
+			Optional<User> conflict = userRepository.findByEmailIgnoreCase(newEmail);
+			if (conflict.isPresent() && !conflict.get().getId().equals(id)) {
+				throw new IllegalArgumentException("El email ya está en uso por otro usuario");
+			}
+			user.setEmail(newEmail);
+		}
 
-        return userRepository.save(user);
-    }
+		return userRepository.save(user);
+	}
 
-    /**
-     * Cambia la contraseña de un usuario verificando la actual.
-     * 
-     * @throws IllegalArgumentException si la contraseña actual es incorrecta
-     */
-    @Transactional
-    public void changePassword(Integer id, String oldPassword, String newPassword) {
-        User user = findById(id);
+	/**
+	 * Cambia la contraseña de un usuario verificando la actual.
+	 * 
+	 * @throws IllegalArgumentException si la contraseña actual es incorrecta
+	 */
+	@Transactional
+	public void changePassword(Integer id, String oldPassword, String newPassword) {
+		User user = findById(id);
 
-        if (!user.checkPassword(oldPassword)) {
-            throw new IllegalArgumentException("Contraseña actual incorrecta");
-        }
-        user.setPassword(newPassword);
-        userRepository.save(user);
-    }
+		if (!user.checkPassword(oldPassword)) {
+			throw new IllegalArgumentException("Contraseña actual incorrecta");
+		}
+		user.setPassword(newPassword);
+		userRepository.save(user);
+	}
 
-    /**
-     * Elimina un usuario por ID.
-     * 
-     * @throws NoSuchElementException si no existe
-     */
-    @Transactional
-    public void deleteUser(Integer id) {
-        if (!userRepository.existsById(id)) {
-            throw new NoSuchElementException("Usuario no encontrado con id: " + id);
-        }
-        userRepository.deleteById(id);
-    }
+	/**
+	 * Elimina un usuario por ID.
+	 * 
+	 * @throws NoSuchElementException si no existe
+	 */
+	@Transactional
+	public void deleteUser(Integer id) {
+		if (!userRepository.existsById(id)) {
+			throw new NoSuchElementException("Usuario no encontrado con id: " + id);
+		}
+		userRepository.deleteById(id);
+	}
+
+	public List<User> searchByUsernameOrEmail(String q) {
+		return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(q, q);
+	}
 }
