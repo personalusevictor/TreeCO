@@ -58,8 +58,8 @@ function buildNoPendingTasksMarkup() {
         y verla aquí ordenada por fecha de finalización.
       </p>
       <div class="noTaskGoTasks">
-        <a href="./../../task.html" class="noTaskGoTask">Ir a tareas</a>
-        <a href="./../../task.html" class="noTaskCreateTask">Crear nueva tarea</a>
+        <a href="./tasks.html" class="noTaskGoTask">Ir a tareas</a>
+        <a href="./tasks.html" class="noTaskCreateTask">Crear nueva tarea</a>
       </div>
     </div>
   `
