@@ -2,16 +2,25 @@ class AppHeader extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
       <header>
-        <a class="logo" href="./dashboard.html">
-          <img src="./assets/img/favicon/TreeCO.svg" alt="TreeCO logo" class="logo-img" width="40" height="40" draggable="false" />
-          <span class="logo-name">Tree<span>CO</span></span>
-        </a>
+        <div class="header-top">
+          <a class="logo" href="./dashboard.html">
+            <img src="./assets/img/favicon/TreeCO.svg" alt="TreeCO logo" class="logo-img" width="40" height="40" draggable="false" />
+            <span class="logo-name">Tree<span>CO</span></span>
+          </a>
 
-        <nav class="navegator">
+          <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <nav class="navegator" id="mobileNav">
           <a class="link" href="./dashboard.html"><span class="icono">⬡</span> Dashboard</a>
           <a class="link" href="./projects.html"><span class="icono">⚐</span> Proyectos</a>
           <a class="link" href="./tasks.html"><span class="icono">✓</span> Tareas</a>
           <a class="link" href="./calendar.html"><span class="icono">◷</span> Calendario</a>
+          <a class="linkMobile" id="logout" href=""><span class="icono">X</span> Cerrar sesión</a>
         </nav>
 
         <div class="user">
@@ -30,6 +39,7 @@ class AppHeader extends HTMLElement {
 
     this._initSession()
     this._setActiveLink()
+    this._initMenu()
   }
 
   _initSession() {
@@ -68,11 +78,26 @@ class AppHeader extends HTMLElement {
   _setActiveLink() {
     const currentPath = globalThis.location.pathname
     const navLinks = this.querySelectorAll("nav.navegator a")
+
     navLinks.forEach((link) => {
       link.classList.remove("link-active")
       if (link.getAttribute("href").endsWith(currentPath.split("/").pop())) {
         link.classList.add("link-active")
       }
+    })
+  }
+
+  _initMenu() {
+    const menuToggle = this.querySelector("#menuToggle")
+    const mobileNav = this.querySelector("#mobileNav")
+    const linkMobile = this.querySelector(".linkMobile")
+
+    if (!menuToggle || !mobileNav) return
+
+    menuToggle.addEventListener("click", () => {
+      mobileNav.classList.toggle("open")
+      menuToggle.classList.toggle("open")
+      linkMobile.classList.toggle("link")
     })
   }
 }

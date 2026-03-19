@@ -8,6 +8,7 @@ header {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--color-glass-border);
+  overflow: hidden;
 }
 
 /* --- Logo --- */
@@ -70,6 +71,10 @@ header nav .link-active {
   border-color: var(--color-green-primary);
 }
 
+header .linkMobile {
+  display: none;
+}
+
 /* --- Usuario --- */
 header .user {
   display: flex;
@@ -100,6 +105,24 @@ header .user .username button:hover {
   color: var(--color-text-primary);
   transition: all var(--duration-fast) var(--ease-smooth);
   cursor: pointer;
+}
+
+/*--- HAMBURGUESA ---*/
+header .menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+}
+
+header .menu-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  margin: 5px 0;
+  background-color: var(--color-text-primary);
+  transition: all var(--duration-fast) var(--ease-smooth);
 }
 
 @media (max-width: 1270px) {
@@ -144,16 +167,7 @@ header .user .username button:hover {
   }
 
   header .logo {
-    justify-content: center;
-  }
-
-  header .logo .logo-img {
-    width: 28px;
-    height: 28px;
-  }
-
-  header .logo .logo-name {
-    font-size: 1.2rem;
+    display: none;
   }
 
   header .navegator {
@@ -195,30 +209,41 @@ header .user .username button:hover {
 }
 
 @media (max-width: 622px) {
-  header {
-    padding: 0.85rem;
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  header .user {
+    display: none;
+  }
+
+  header .linkMobile {
+    display: flex;
+  }
+
+  header .menu-toggle {
+    display: flex;
+    flex-direction: column;
   }
 
   header .navegator {
+    display: none;
     flex-direction: column;
-    flex-wrap: nowrap;
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  header .navegator.open {
+    display: flex;
   }
 
   header nav .link,
   header nav .link-active {
     width: 100%;
-  }
-
-  header .user {
-    flex-direction: row;
     justify-content: center;
-  }
-
-  header .user .username {
-    align-items: flex-start;
-  }
-
-  header .logo .logo-name {
-    font-size: 1.05rem;
+    padding: 0.75rem 0.9rem;
   }
 }
