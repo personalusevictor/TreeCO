@@ -3,7 +3,7 @@
    scripts/pages/projects.js
    ═══════════════════════════════════════════════ */
 
-	 const API_BASE = "http://localhost:8080"
+const API_BASE = "http://localhost:8080"
 
 	 const state = {
 		 user:            null,
@@ -287,9 +287,9 @@ let csSort = null, csRole = null, csAssignee = null
 				 <span class="proj-item-dot" style="background:${col};color:${col}"></span>
 				 <div class="proj-item-body">
 					 <div class="proj-item-name">${esc(p.name)}</div>
-					 <div class="proj-item-sub">${p.progress??0}% completado</div>
+					 <div class="proj-item-sub">${p.progress ?? 0}% completado</div>
 				 </div>
-				 <div class="proj-item-actions" style="${showActions?'':'display:none'}">
+				 <div class="proj-item-actions" style="${showActions ? "" : "display:none"}">
 					 <button class="btn-row-action" data-action="rename" title="Renombrar">
 						 <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
 							 <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
@@ -408,9 +408,9 @@ let csSort = null, csRole = null, csAssignee = null
 			 <div class="pb-item"><span class="pb-dot" style="background:#60a5fa"></span>${active} en curso</div>
 			 ${expired ? `<div class="pb-item"><span class="pb-dot" style="background:#fb923c"></span>${expired} vencidas</div>` : ""}
 		 `
-	 
-		 // Stats en el header
-		 document.getElementById("proj-header-stats").innerHTML = `
+
+  // Stats en el header
+  document.getElementById("proj-header-stats").innerHTML = `
 			 <div class="stat-block">
 				 <div class="stat-value">${total}</div>
 				 <div class="stat-label">Tareas</div>
@@ -496,69 +496,67 @@ let csSort = null, csRole = null, csAssignee = null
 	 /* ════════════════════════════════════════════════
 			TAREAS
 	 ════════════════════════════════════════════════ */
-	 async function loadTasks() {
-		 const board = document.getElementById("kanban-board")
-		 board.innerHTML = `<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div class="spinner"></div></div>`
-		 try {
-			 state.tasks = await GET(`/projects/${state.currentProject.id}/tasks`)
-			 document.getElementById("tc-tasks").textContent = state.tasks.length
-			 renderKanban()
-			 updateProgress()
-		 } catch(e) {
-			 board.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:rgba(255,255,255,0.2)">Error: ${esc(e.message)}</div>`
-		 }
-	 }
-	 
-	 function getVisibleTasks() {
-		 let tasks = [...state.tasks]
-		 // Filtro por estado
-		 if (state.taskFilter !== "all") {
-			 tasks = tasks.filter(t => {
-				 const s = taskState(t)
-				 if (state.taskFilter === "COMPLETED")   return s === "done"
-				 if (state.taskFilter === "EXPIRED")     return s === "exp"
-				 if (state.taskFilter === "IN_PROGRESS") return s === "active"
-				 return true
-			 })
-		 }
-		 // Búsqueda
-		 if (state.taskSearch) {
-			 const q = state.taskSearch.toLowerCase()
-			 tasks = tasks.filter(t =>
-				 t.title?.toLowerCase().includes(q) ||
-				 t.description?.toLowerCase().includes(q))
-		 }
-		 // Ordenar
-		 if (state.taskSort === "priority") {
-			 const order = {HIGH:0, MID:1, LOW:2}
-			 tasks.sort((a,b) => (order[a.priority]??1) - (order[b.priority]??1))
-		 } else if (state.taskSort === "deadline") {
-			 tasks.sort((a,b) => {
-				 if (!a.dateDeadline) return 1
-				 if (!b.dateDeadline) return -1
-				 return a.dateDeadline.localeCompare(b.dateDeadline)
-			 })
-		 } else if (state.taskSort === "name") {
-			 tasks.sort((a,b) => a.title.localeCompare(b.title))
-		 }
-		 return tasks
-	 }
-	 
-	 function renderKanban() {
-		 const cols = {
-			 active: {label:"En curso",    dot:"#60a5fa", tasks:[]},
-			 exp:    {label:"Vencidas",    dot:"#fb923c", tasks:[]},
-			 done:   {label:"Completadas", dot:"#3ddc84", tasks:[]},
-		 }
-		 getVisibleTasks().forEach(t => cols[taskState(t)].tasks.push(t))
-	 
-		 const board = document.getElementById("kanban-board")
-		 board.innerHTML = ""
-	 
-		 Object.entries(cols).forEach(([key, col]) => {
-			 const colEl = document.createElement("div")
-			 colEl.className = "kanban-col"
-			 colEl.innerHTML = `
+async function loadTasks() {
+  const board = document.getElementById("kanban-board")
+  board.innerHTML = `<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div class="spinner"></div></div>`
+  try {
+    state.tasks = await GET(`/projects/${state.currentProject.id}/tasks`)
+    document.getElementById("tc-tasks").textContent = state.tasks.length
+    renderKanban()
+    updateProgress()
+  } catch (e) {
+    board.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:rgba(255,255,255,0.2)">Error: ${esc(e.message)}</div>`
+  }
+}
+
+function getVisibleTasks() {
+  let tasks = [...state.tasks]
+  // Filtro por estado
+  if (state.taskFilter !== "all") {
+    tasks = tasks.filter((t) => {
+      const s = taskState(t)
+      if (state.taskFilter === "COMPLETED") return s === "done"
+      if (state.taskFilter === "EXPIRED") return s === "exp"
+      if (state.taskFilter === "IN_PROGRESS") return s === "active"
+      return true
+    })
+  }
+  // Búsqueda
+  if (state.taskSearch) {
+    const q = state.taskSearch.toLowerCase()
+    tasks = tasks.filter((t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
+  }
+  // Ordenar
+  if (state.taskSort === "priority") {
+    const order = { HIGH: 0, MID: 1, LOW: 2 }
+    tasks.sort((a, b) => (order[a.priority] ?? 1) - (order[b.priority] ?? 1))
+  } else if (state.taskSort === "deadline") {
+    tasks.sort((a, b) => {
+      if (!a.dateDeadline) return 1
+      if (!b.dateDeadline) return -1
+      return a.dateDeadline.localeCompare(b.dateDeadline)
+    })
+  } else if (state.taskSort === "name") {
+    tasks.sort((a, b) => a.title.localeCompare(b.title))
+  }
+  return tasks
+}
+
+function renderKanban() {
+  const cols = {
+    active: { label: "En curso", dot: "#60a5fa", tasks: [] },
+    exp: { label: "Vencidas", dot: "#fb923c", tasks: [] },
+    done: { label: "Completadas", dot: "#3ddc84", tasks: [] },
+  }
+  getVisibleTasks().forEach((t) => cols[taskState(t)].tasks.push(t))
+
+  const board = document.getElementById("kanban-board")
+  board.innerHTML = ""
+
+  Object.entries(cols).forEach(([key, col]) => {
+    const colEl = document.createElement("div")
+    colEl.className = "kanban-col"
+    colEl.innerHTML = `
 				 <div class="kanban-col-head">
 					 <div class="kanban-col-label">
 						 <span class="col-status-dot" style="background:${col.dot}"></span>
@@ -635,11 +633,11 @@ let csSort = null, csRole = null, csAssignee = null
 					 <span class="task-assignee-bubble" style="background:${col}">${initials}</span>
 					 <span class="task-assignee-name">${isMe ? "Yo" : esc(t.assignedTo.username)}</span>
 				 </div>`
-		 }
-	 
-		 const card = document.createElement("div")
-		 card.className = `task-card${t.completed?" completed":""}`
-		 card.innerHTML = `
+  }
+
+  const card = document.createElement("div")
+  card.className = `task-card${t.completed ? " completed" : ""}`
+  card.innerHTML = `
 			 <div class="task-card-top">
 				 <div class="task-card-title">${esc(t.title)}</div>
 				 <div class="task-card-btns">
@@ -651,9 +649,7 @@ let csSort = null, csRole = null, csAssignee = null
 					 </button>` : ""}
 					 <button class="task-card-btn" data-action="toggle" title="${t.completed?"Reabrir":"Completar"}">
 						 <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-							 ${t.completed
-								 ? `<path d="M10 3L5 9L2 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
-								 : `<path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`}
+							 ${t.completed ? `<path d="M10 3L5 9L2 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>` : `<path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`}
 						 </svg>
 					 </button>
 					 ${canEdit ? `
@@ -1119,97 +1115,98 @@ let csSort = null, csRole = null, csAssignee = null
 	 /* ════════════════════════════════════════════════
 			INVITAR MIEMBROS — búsqueda por nombre/email
 	 ════════════════════════════════════════════════ */
-	 let inviteDebounce  = null
-	 let inviteSelected  = null  // { id, username, email }
-	 
-	 function initInvitePanel() {
-		 const searchInput = document.getElementById("invite-search")
-		 const results     = document.getElementById("invite-results")
-		 const spinner     = document.getElementById("invite-spinner")
-		 const selectedBox = document.getElementById("invite-selected")
-		 const selectedUser= document.getElementById("invite-selected-user")
-	 
-		 if (!searchInput) return
-	 
-		 searchInput.addEventListener("input", () => {
-			 const q = searchInput.value.trim()
-			 clearTimeout(inviteDebounce)
-	 
-			 // Reset selección si el usuario escribe de nuevo
-			 if (inviteSelected) {
-				 inviteSelected = null
-				 selectedBox.style.display = "none"
-			 }
-	 
-			 if (q.length < 2) {
-				 results.style.display = "none"
-				 results.innerHTML = ""
-				 spinner.style.display = "none"
-				 return
-			 }
-	 
-			 spinner.style.display = "flex"
-			 results.style.display = "none"
-	 
-			 inviteDebounce = setTimeout(async () => {
-				 try {
-					 const users = await GET(`/api/users/search?q=${encodeURIComponent(q)}`)
-					 spinner.style.display = "none"
-					 renderSearchResults(users, results, selectedBox, selectedUser, searchInput)
-				 } catch(e) {
-					 spinner.style.display = "none"
-					 results.innerHTML = `<div class="invite-no-results">Error buscando usuarios</div>`
-					 results.style.display = "block"
-				 }
-			 }, 320)
-		 })
-	 
-		 // Cerrar resultados al click fuera
-		 document.addEventListener("click", e => {
-			 if (!e.target.closest(".invite-panel")) {
-				 results.style.display = "none"
-			 }
-		 })
-	 }
-	 
-	 function renderSearchResults(users, resultsEl, selectedBox, selectedUser, searchInput) {
-		 const memberIds = new Set(state.members.map(m => m.user?.id))
-		 const myId      = state.user?.userId || state.user?.id
-	 
-		 // Filtrar: no mostrar al usuario actual ni a quienes ya son miembros
-		 const filtered = users.filter(u => u.id !== myId)
-	 
-		 resultsEl.innerHTML = ""
-	 
-		 if (!filtered.length) {
-			 resultsEl.innerHTML = `<div class="invite-no-results">Sin resultados para esa búsqueda</div>`
-			 resultsEl.style.display = "block"
-			 return
-		 }
-	 
-		 filtered.forEach(u => {
-			 const alreadyMember = memberIds.has(u.id)
-			 const col     = avatarColor(u.id)
-			 const initials = u.username.substring(0,2).toUpperCase()
-	 
-			 const item = document.createElement("div")
-			 item.className = `invite-result-item${alreadyMember?" already-member":""}`
-			 item.innerHTML = `
+let inviteDebounce = null
+let inviteSelected = null // { id, username, email }
+
+function initInvitePanel() {
+  const searchInput = document.getElementById("invite-search")
+  const results = document.getElementById("invite-results")
+  const spinner = document.getElementById("invite-spinner")
+  const selectedBox = document.getElementById("invite-selected")
+  const selectedUser = document.getElementById("invite-selected-user")
+
+  if (!searchInput) return
+
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.trim()
+    clearTimeout(inviteDebounce)
+
+    // Reset selección si el usuario escribe de nuevo
+    if (inviteSelected) {
+      inviteSelected = null
+      selectedBox.style.display = "none"
+    }
+
+    if (q.length < 2) {
+      results.style.display = "none"
+      results.innerHTML = ""
+      spinner.style.display = "none"
+      return
+    }
+
+    spinner.style.display = "flex"
+    results.style.display = "none"
+
+    inviteDebounce = setTimeout(async () => {
+      try {
+        const users = await GET(`/api/users/search?q=${encodeURIComponent(q)}`)
+        spinner.style.display = "none"
+        renderSearchResults(users, results, selectedBox, selectedUser, searchInput)
+      } catch (e) {
+        console.log(e)
+        spinner.style.display = "none"
+        results.innerHTML = `<div class="invite-no-results">Error buscando usuarios</div>`
+        results.style.display = "block"
+      }
+    }, 320)
+  })
+
+  // Cerrar resultados al click fuera
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".invite-panel")) {
+      results.style.display = "none"
+    }
+  })
+}
+
+function renderSearchResults(users, resultsEl, selectedBox, selectedUser, searchInput) {
+  const memberIds = new Set(state.members.map((m) => m.user?.id))
+  const myId = state.user?.userId || state.user?.id
+
+  // Filtrar: no mostrar al usuario actual ni a quienes ya son miembros
+  const filtered = users.filter((u) => u.id !== myId)
+
+  resultsEl.innerHTML = ""
+
+  if (!filtered.length) {
+    resultsEl.innerHTML = `<div class="invite-no-results">Sin resultados para esa búsqueda</div>`
+    resultsEl.style.display = "block"
+    return
+  }
+
+  filtered.forEach((u) => {
+    const alreadyMember = memberIds.has(u.id)
+    const col = avatarColor(u.id)
+    const initials = u.username.substring(0, 2).toUpperCase()
+
+    const item = document.createElement("div")
+    item.className = `invite-result-item${alreadyMember ? " already-member" : ""}`
+    item.innerHTML = `
 				 <div class="invite-result-avatar" style="background:${col}">${initials}</div>
 				 <div class="invite-result-info">
 					 <div class="invite-result-name">${esc(u.username)}</div>
 					 <div class="invite-result-email">${esc(u.email)}</div>
 				 </div>
 				 ${alreadyMember ? `<span class="invite-result-badge">Ya miembro</span>` : ""}`
-	 
-			 if (!alreadyMember) {
-				 item.addEventListener("click", () => {
-					 inviteSelected = u
-					 resultsEl.style.display = "none"
-					 searchInput.value = u.username
-	 
-					 // Mostrar preview del usuario seleccionado
-					 selectedUser.innerHTML = `
+
+    if (!alreadyMember) {
+      item.addEventListener("click", () => {
+        inviteSelected = u
+        resultsEl.style.display = "none"
+        searchInput.value = u.username
+
+        // Mostrar preview del usuario seleccionado
+        selectedUser.innerHTML = `
 						 <div class="invite-result-avatar" style="background:${col};width:28px;height:28px;font-size:0.65rem">${initials}</div>
 						 <div class="invite-result-info">
 							 <div class="invite-result-name">${esc(u.username)}</div>
@@ -1250,51 +1247,50 @@ let csSort = null, csRole = null, csAssignee = null
 	 /* ════════════════════════════════════════════════
 			TAB CALENDARIO
 	 ════════════════════════════════════════════════ */
-	 function renderCalendarTab() {
-		 const btn = document.getElementById("btn-go-calendar")
-		 if (btn) btn.onclick = () => location.href = `calendar.html?projectId=${state.currentProject.id}`
-	 
-		 const container = document.getElementById("cal-redirect-upcoming")
-		 if (!container) return
-	 
-		 const myId = state.user?.userId || state.user?.id
-	 
-		 // Solo tareas sin asignar o asignadas al usuario actual
-		 const myTasks = state.tasks.filter(t => {
-			 if (!t.assignedTo) return true
-			 return Number(t.assignedTo.id) === Number(myId)
-		 })
-	 
-		 const upcoming = myTasks
-			 .filter(t => !t.completed && t.dateDeadline)
-			 .map(t => ({...t, _d: daysUntil(t.dateDeadline)}))
-			 .filter(t => t._d !== null && t._d >= 0)
-			 .sort((a,b) => a._d - b._d)
-			 .slice(0, 6)
-	 
-		 const expired = myTasks.filter(t =>
-			 !t.completed && t.dateDeadline && daysUntil(t.dateDeadline) < 0)
-	 
-		 if (!upcoming.length && !expired.length) {
-			 container.innerHTML = `<p class="upcoming-empty">Sin fechas límite próximas para ti</p>`
-			 return
-		 }
-	 
-		 let html = `<p class="upcoming-title">Mis próximas fechas límite</p><div class="upcoming-list">`
-	 
-		 if (expired.length) {
-			 html += `<div class="upcoming-row">
+function renderCalendarTab() {
+  const btn = document.getElementById("btn-go-calendar")
+  if (btn) btn.onclick = () => (location.href = `calendar.html?projectId=${state.currentProject.id}`)
+
+  const container = document.getElementById("cal-redirect-upcoming")
+  if (!container) return
+
+  const myId = state.user?.userId || state.user?.id
+
+  // Solo tareas sin asignar o asignadas al usuario actual
+  const myTasks = state.tasks.filter((t) => {
+    if (!t.assignedTo) return true
+    return Number(t.assignedTo.id) === Number(myId)
+  })
+
+  const upcoming = myTasks
+    .filter((t) => !t.completed && t.dateDeadline)
+    .map((t) => ({ ...t, _d: daysUntil(t.dateDeadline) }))
+    .filter((t) => t._d !== null && t._d >= 0)
+    .sort((a, b) => a._d - b._d)
+    .slice(0, 6)
+
+  const expired = myTasks.filter((t) => !t.completed && t.dateDeadline && daysUntil(t.dateDeadline) < 0)
+
+  if (!upcoming.length && !expired.length) {
+    container.innerHTML = `<p class="upcoming-empty">Sin fechas límite próximas para ti</p>`
+    return
+  }
+
+  let html = `<p class="upcoming-title">Mis próximas fechas límite</p><div class="upcoming-list">`
+
+  if (expired.length) {
+    html += `<div class="upcoming-row">
 				 <span class="up-side" style="background:var(--color-error)"></span>
-				 <div class="up-info"><span class="up-name">${expired.length} tarea${expired.length>1?"s":""} vencida${expired.length>1?"s":""}</span></div>
+				 <div class="up-info"><span class="up-name">${expired.length} tarea${expired.length > 1 ? "s" : ""} vencida${expired.length > 1 ? "s" : ""}</span></div>
 				 <span class="up-badge badge-urgent">Vencidas</span>
 			 </div>`
-		 }
-	 
-		 upcoming.forEach(t => {
-			 const cls = t._d===0?"badge-today":t._d<=2?"badge-urgent":t._d<=7?"badge-soon":"badge-normal"
-			 const lbl = t._d===0?"Hoy":t._d===1?"Mañana":`${t._d}d`
-			 const bar = t.priority==="HIGH"?"#ff8888":t.priority==="LOW"?"#6ee7b7":"#fbbf24"
-			 html += `<div class="upcoming-row" data-tid="${t.id}">
+  }
+
+  upcoming.forEach((t) => {
+    const cls = t._d === 0 ? "badge-today" : t._d <= 2 ? "badge-urgent" : t._d <= 7 ? "badge-soon" : "badge-normal"
+    const lbl = t._d === 0 ? "Hoy" : t._d === 1 ? "Mañana" : `${t._d}d`
+    const bar = t.priority === "HIGH" ? "#ff8888" : t.priority === "LOW" ? "#6ee7b7" : "#fbbf24"
+    html += `<div class="upcoming-row" data-tid="${t.id}">
 				 <span class="up-side" style="background:${bar}"></span>
 				 <div class="up-info">
 					 <span class="up-name">${esc(t.title)}</span>
@@ -1302,19 +1298,19 @@ let csSort = null, csRole = null, csAssignee = null
 				 </div>
 				 <span class="up-badge ${cls}">${lbl}</span>
 			 </div>`
-		 })
-	 
-		 html += `</div>`
-		 container.innerHTML = html
-		 container.querySelectorAll("[data-tid]").forEach(el => {
-			 el.addEventListener("click", () => {
-				 const t = state.tasks.find(x => x.id === parseInt(el.dataset.tid))
-				 if (t) openTaskModal(t)
-			 })
-		 })
-	 }
-	 
-	 /* ════════════════════════════════════════════════
+  })
+
+  html += `</div>`
+  container.innerHTML = html
+  container.querySelectorAll("[data-tid]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const t = state.tasks.find((x) => x.id === parseInt(el.dataset.tid))
+      if (t) openTaskModal(t)
+    })
+  })
+}
+
+/* ════════════════════════════════════════════════
 			EVENTOS
 	 ════════════════════════════════════════════════ */
 	 function bindEvents() {
