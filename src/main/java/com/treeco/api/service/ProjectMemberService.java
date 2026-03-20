@@ -142,7 +142,7 @@ public class ProjectMemberService {
     }
 
     /**
-     * Elimina (desactiva) a un miembro del proyecto.
+     * Elimina definitivamente a un miembro del proyecto.
      * 
      * @throws IllegalArgumentException si se intenta eliminar al OWNER
      */
@@ -154,8 +154,7 @@ public class ProjectMemberService {
             throw new IllegalArgumentException("No se puede eliminar al OWNER del proyecto");
         }
 
-        member.deactivate();
-        memberRepository.save(member);
+        memberRepository.delete(member);
     }
 
     // ── AUXILIARES ────────────────────────────────────────────────────

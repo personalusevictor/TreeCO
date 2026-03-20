@@ -26,6 +26,89 @@
 	 const projColor   = p   => PROJ_COLORS[Math.abs(p.id||0) % PROJ_COLORS.length]
 	 const avatarColor = id  => AVATAR_COLORS[Math.abs(id||0) % AVATAR_COLORS.length]
 	 
+
+/* ════════════════════════════════════════════════
+      CUSTOM SELECT COMPONENT
+════════════════════════════════════════════════ */
+class CustomSelect {
+    constructor(el, onChange) {
+        this.el       = el
+        this.onChange = onChange
+        this.value    = el.dataset.value || ""
+        this.trigger  = el.querySelector(".custom-select-trigger")
+        this.dropdown = el.querySelector(".custom-select-dropdown")
+        this.labelEl  = el.querySelector(".custom-select-label")
+        this._bind()
+    }
+    _bind() {
+        this.trigger.addEventListener("click", e => {
+            e.stopPropagation()
+            document.querySelectorAll(".custom-select.open").forEach(s => {
+                if (s !== this.el) { s.classList.remove("open"); s.classList.remove("open-up") }
+            })
+            this.toggle()
+            if (this.el.classList.contains("open")) {
+                requestAnimationFrame(() => {
+                    const rect = this.dropdown.getBoundingClientRect()
+                    this.el.classList.toggle("open-up", rect.bottom > window.innerHeight - 12)
+                })
+            }
+        })
+        this._bindOptions(this.dropdown)
+        document.addEventListener("click", () => this.close())
+    }
+    _bindOptions(container) {
+        container.querySelectorAll(".custom-select-option").forEach(opt => {
+            opt.addEventListener("click", e => {
+                e.stopPropagation()
+                this.setValue(opt.dataset.value, opt)
+                this.close()
+            })
+        })
+    }
+    toggle() { this.el.classList.toggle("open") }
+    close()  { this.el.classList.remove("open"); this.el.classList.remove("open-up") }
+    open()   { this.el.classList.add("open") }
+    setValue(val, optEl) {
+        this.value = val
+        this.el.dataset.value = val
+        this.dropdown.querySelectorAll(".custom-select-option").forEach(o =>
+            o.classList.toggle("cs-selected", o.dataset.value === val))
+        if (optEl) {
+            const srcDot = optEl.querySelector(".cs-prio-dot, .cs-role-dot, .cs-avatar, .cs-avatar-empty")
+            const tgtDot = this.trigger.querySelector(".cs-prio-dot, .cs-role-dot, .cs-avatar, .cs-avatar-empty")
+            if (srcDot && tgtDot) {
+                tgtDot.className = srcDot.className
+                if (srcDot.classList.contains("cs-avatar")) {
+                    tgtDot.style.background = srcDot.style.background
+                    tgtDot.textContent = srcDot.textContent
+                }
+            }
+            const hint = optEl.querySelector(".cs-role-hint")
+            const rawText = hint
+                ? optEl.textContent.replace(hint.textContent, "").trim()
+                : optEl.textContent.trim()
+            if (this.labelEl) this.labelEl.textContent = rawText
+        }
+        if (this.onChange) this.onChange(val)
+    }
+    get() { return this.value }
+    addOption(html) {
+        this.dropdown.insertAdjacentHTML("beforeend", html)
+        const newOpt = this.dropdown.lastElementChild
+        newOpt.addEventListener("click", e => {
+            e.stopPropagation()
+            this.setValue(newOpt.dataset.value, newOpt)
+            this.close()
+        })
+    }
+    clearOptions(keepFirst = true) {
+        const opts = [...this.dropdown.querySelectorAll(".custom-select-option")]
+        opts.slice(keepFirst ? 1 : 0).forEach(o => o.remove())
+    }
+}
+let csSort = null, csRole = null, csPriority = null, csAssignee = null
+
 	 /* ── Utils ───────────────────────────────────── */
 	 function esc(s) {
 		 return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")
@@ -77,9 +160,31 @@
 	 const closeModal = id => document.getElementById(id).classList.remove("open")
 	 
 	 function showConfirm(name, warn, cb) {
+		 document.getElementById("confirm-eyebrow").textContent = "Atención"
+		 document.getElementById("confirm-eyebrow").className   = "modal-eyebrow modal-eyebrow-danger"
+		 document.getElementById("confirm-title").textContent   = "Confirmar eliminación"
 		 document.getElementById("confirm-text").innerHTML =
 			 `¿Seguro que quieres eliminar <span class="confirm-name">${esc(name)}</span>?`
 		 document.getElementById("confirm-warn").textContent = warn || ""
+		 const btn = document.getElementById("btn-confirm-delete")
+		 btn.textContent = "Sí, eliminar"
+		 btn.className   = "btn-delete"
+		 state.confirmCb = cb
+		 openModal("modal-confirm")
+	 }
+
+	 function showRoleConfirm(uname, newRole, cb) {
+		 const isPromote = newRole === "ADMIN"
+		 document.getElementById("confirm-eyebrow").textContent = "Cambiar rol"
+		 document.getElementById("confirm-eyebrow").className   = "modal-eyebrow"
+		 document.getElementById("confirm-title").textContent   = isPromote ? "Dar permisos de Administrador" : "Revocar permisos de Administrador"
+		 document.getElementById("confirm-text").innerHTML = isPromote
+			 ? `¿Dar permisos de <strong>Admin</strong> a <span class="confirm-name">${esc(uname)}</span>?<br><span style="font-size:0.78rem;color:rgba(255,255,255,0.3);display:block;margin-top:6px">Podrá invitar y eliminar miembros, y gestionar todas las tareas.</span>`
+			 : `¿Quitar los permisos de Admin a <span class="confirm-name">${esc(uname)}</span>?<br><span style="font-size:0.78rem;color:rgba(255,255,255,0.3);display:block;margin-top:6px">Pasará a ser Miembro y solo podrá marcar tareas como completadas.</span>`
+		 document.getElementById("confirm-warn").textContent = ""
+		 const btn = document.getElementById("btn-confirm-delete")
+		 btn.textContent = isPromote ? "Sí, hacer Admin" : "Sí, quitar Admin"
+		 btn.className   = isPromote ? "btn-confirm" : "btn-delete"
 		 state.confirmCb = cb
 		 openModal("modal-confirm")
 	 }
@@ -105,6 +210,11 @@
 			 if (!uid) { location.replace("index.html"); return }
 			 state.projects = await GET(`/projects?userId=${uid}`)
 			 renderSidebar()
+			 const lastId = parseInt(localStorage.getItem("treeco_last_project") || "0")
+			 if (lastId) {
+				 const found = state.projects.find(p => p.id === lastId)
+				 if (found) await selectProject(found, false)
+			 }
 		 } catch(e) {
 			 list.innerHTML = `<p class="empty-sidebar-msg">Error cargando proyectos</p>`
 			 toast(e.message, "err")
@@ -172,7 +282,7 @@
 		 })
 	 }
 	 
-	 async function selectProject(p) {
+	 async function selectProject(p, persist = true) {
 		 state.currentProject = p
 		 state.currentRole    = null
 		 document.getElementById("proj-empty").style.display  = "none"
@@ -182,8 +292,19 @@
 			 el.classList.toggle("active", Number(el.dataset.id) === p.id))
 		 await Promise.all([loadTasks(), loadMembers()])
 		 applyPermissions()
-		 initInvitePanel()  // re-init con miembros ya cargados
+		 initInvitePanel()
 		 renderCalendarTab()
+		 if (persist) localStorage.setItem("treeco_last_project", String(p.id))
+	 }
+
+	 function clearLastProject() {
+		 localStorage.removeItem("treeco_last_project")
+		 state.currentProject = null
+		 state.currentRole    = null
+		 document.getElementById("proj-detail").style.display = "none"
+		 document.getElementById("proj-empty").style.display  = "flex"
+		 renderSidebar()
+		 toast("Volviste a la pantalla principal", "info")
 	 }
 	 
 	 function renderProjectHeader(p) {
@@ -214,6 +335,28 @@
 		 if (invitePanel) invitePanel.style.display = isAdmin ? "" : "none"
 	 
 		 // Los botones del sidebar se gestionan en renderSidebar con state.currentRole
+
+	 // Añadir tarea — solo OWNER y ADMIN
+	 const btnAddTask = document.getElementById("btn-add-task")
+	 if (btnAddTask) btnAddTask.style.display = isAdmin ? "" : "none"
+
+	 // Banner informativo para MEMBER
+	 const existingBanner = document.getElementById("role-info-banner")
+	 if (existingBanner) existingBanner.remove()
+	 if (!isAdmin) {
+		 const banner = document.createElement("div")
+		 banner.id = "role-info-banner"
+		 banner.className = "role-info-banner"
+		 banner.innerHTML = `
+			 <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+				 <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
+				 <path d="M8 7v4M8 5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+			 </svg>
+			 Eres <strong>Miembro</strong> — solo puedes marcar tareas como completadas
+		 `
+		 const controls = document.querySelector(".tasks-controls")
+		 if (controls) controls.parentNode.insertBefore(banner, controls)
+	 }
 	 }
 	 
 	 function updateProgress() {
@@ -306,6 +449,7 @@
 				 state.projects = state.projects.filter(x => x.id !== p.id)
 				 if (state.currentProject?.id === p.id) {
 					 state.currentProject = null
+					 localStorage.removeItem("treeco_last_project")
 					 document.getElementById("proj-detail").style.display = "none"
 					 document.getElementById("proj-empty").style.display  = "flex"
 				 }
@@ -395,7 +539,12 @@
 					 </svg>
 					 Añadir tarea
 				 </button>`
-			 colEl.querySelector(".col-add-btn").addEventListener("click", () => openTaskModal(null))
+			 const colAddBtn = colEl.querySelector(".col-add-btn")
+		 if (state.currentRole !== "OWNER" && state.currentRole !== "ADMIN") {
+			 colAddBtn.style.display = "none"
+		 } else {
+			 colAddBtn.addEventListener("click", () => openTaskModal(null))
+		 }
 			 board.appendChild(colEl)
 	 
 			 const cards = document.getElementById(`col-${key}`)
@@ -416,6 +565,7 @@
 		 const prioKey = st==="done" ? "done" : st==="exp" ? "exp" : (t.priority||"MID")
 		 const prioLbl = st==="done" ? "Hecha" : st==="exp" ? "Vencida"
 			 : {HIGH:"Alta",MID:"Media",LOW:"Baja"}[t.priority] || "Media"
+		 const canEdit = state.currentRole === "OWNER" || state.currentRole === "ADMIN"
 	 
 		 // Fecha límite
 		 let dlHtml = ""
@@ -449,11 +599,12 @@
 			 <div class="task-card-top">
 				 <div class="task-card-title">${esc(t.title)}</div>
 				 <div class="task-card-btns">
+					 ${canEdit ? `
 					 <button class="task-card-btn" data-action="edit" title="Editar">
 						 <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
 							 <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
 						 </svg>
-					 </button>
+					 </button>` : ""}
 					 <button class="task-card-btn" data-action="toggle" title="${t.completed?"Reabrir":"Completar"}">
 						 <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
 							 ${t.completed
@@ -461,11 +612,12 @@
 								 : `<path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`}
 						 </svg>
 					 </button>
+					 ${canEdit ? `
 					 <button class="task-card-btn del" data-action="delete" title="Eliminar">
 						 <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
 							 <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M3 4l.8 7.2A1 1 0 004.8 12h4.4a1 1 0 001-.8L11 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
 						 </svg>
-					 </button>
+					 </button>` : ""}
 				 </div>
 			 </div>
 			 ${t.description ? `<div class="task-card-desc">${esc(t.description)}</div>` : ""}
@@ -477,9 +629,11 @@
 				 ${assigneeHtml}
 			 </div>`
 	 
-		 card.querySelector("[data-action='edit']").addEventListener("click",   e => { e.stopPropagation(); openTaskModal(t) })
-		 card.querySelector("[data-action='toggle']").addEventListener("click", e => { e.stopPropagation(); toggleTask(t) })
-		 card.querySelector("[data-action='delete']").addEventListener("click", e => { e.stopPropagation(); handleDeleteTask(t) })
+		 if (canEdit) {
+		 card.querySelector("[data-action='edit']")?.addEventListener("click",   e => { e.stopPropagation(); openTaskModal(t) })
+		 card.querySelector("[data-action='delete']")?.addEventListener("click", e => { e.stopPropagation(); handleDeleteTask(t) })
+	 }
+	 card.querySelector("[data-action='toggle']").addEventListener("click", e => { e.stopPropagation(); toggleTask(t) })
 		 return card
 	 }
 	 
@@ -490,40 +644,53 @@
 		 document.getElementById("modal-task-title").textContent   = t ? "Modificar detalles" : "Detalles de la tarea"
 		 document.getElementById("task-input-title").value         = t?.title || ""
 		 document.getElementById("task-input-desc").value          = t?.description || ""
-		 document.getElementById("task-input-priority").value      = t?.priority || "MID"
 		 document.getElementById("task-input-deadline").value      = t?.dateDeadline?.substring(0,10) || ""
-	 
-		 // Llenar select de asignados con miembros del proyecto
-		 const sel = document.getElementById("task-input-assignee")
-		 sel.innerHTML = `<option value="">Sin asignar</option>`
-		 state.members.forEach(m => {
-			 const uid   = m.user?.id
-			 const uname = m.user?.username || `Usuario #${uid}`
-			 const opt   = document.createElement("option")
-			 opt.value   = uid
-			 opt.textContent = uname
-			 if (t?.assignedTo?.id === uid) opt.selected = true
-			 sel.appendChild(opt)
-		 })
-	 
+
+		 // Prioridad — custom select
+		 if (csPriority) {
+			 const prio = t?.priority || "MID"
+			 const prioOpt = csPriority.dropdown.querySelector(`[data-value="${prio}"]`)
+			 csPriority.setValue(prio, prioOpt)
+		 }
+
+		 // Asignado — custom select, rebuild options
+		 if (csAssignee) {
+			 csAssignee.clearOptions(true)
+			 state.members.forEach(m => {
+				 const uid     = m.user?.id
+				 const uname   = m.user?.username || `Usuario #${uid}`
+				 const col     = avatarColor(uid)
+				 const initials = uname.substring(0,2).toUpperCase()
+				 csAssignee.addOption(`
+					 <div class="custom-select-option" data-value="${uid}">
+						 <span class="cs-avatar" style="background:${col}">${initials}</span>
+						 ${esc(uname)}
+					 </div>`)
+			 })
+			 const assignedId = t?.assignedTo?.id ? String(t.assignedTo.id) : ""
+			 const assignedOpt = assignedId
+				 ? csAssignee.dropdown.querySelector(`[data-value="${assignedId}"]`)
+				 : csAssignee.dropdown.querySelector(`[data-value=""]`)
+			 csAssignee.setValue(assignedId, assignedOpt)
+		 }
+
 		 openModal("modal-task")
 		 setTimeout(() => document.getElementById("task-input-title").focus(), 80)
 	 }
 	 
 	 document.getElementById("btn-save-task").addEventListener("click", async () => {
-		 const title      = document.getElementById("task-input-title").value.trim()
-		 const desc       = document.getElementById("task-input-desc").value.trim()
-		 const priority   = document.getElementById("task-input-priority").value
-		 const deadline   = document.getElementById("task-input-deadline").value || null
-		 const assigneeEl = document.getElementById("task-input-assignee")
-		 const assignedToId = assigneeEl?.value ? parseInt(assigneeEl.value) : null
-	 
+		 const title    = document.getElementById("task-input-title").value.trim()
+		 const desc     = document.getElementById("task-input-desc").value.trim()
+		 const priority = csPriority ? csPriority.get() : "MID"
+		 const deadline = document.getElementById("task-input-deadline").value || null
+		 const assigneeVal = csAssignee ? csAssignee.get() : ""
+		 const assignedToId = assigneeVal ? parseInt(assigneeVal) : null
+
 		 if (!title) { toast("El título es obligatorio","err"); return }
-	 
+
 		 try {
 			 if (state.editingTaskId) {
-				 // -1 = desasignar explícitamente si se seleccionó "Sin asignar"
-				 const assignId = assigneeEl?.value === "" ? -1 : assignedToId
+				 const assignId = assigneeVal === "" ? -1 : assignedToId
 				 const updated = await PATCH(`/projects/${state.currentProject.id}/tasks/${state.editingTaskId}`,
 					 {title, description:desc, priority, dateDeadline:deadline, assignedToId: assignId})
 				 const idx = state.tasks.findIndex(t => t.id === state.editingTaskId)
@@ -600,46 +767,75 @@
 			 grid.innerHTML = `<p class="members-empty">Sin miembros aún — invita a alguien →</p>`
 			 return
 		 }
+		 const myRole   = state.currentRole || "MEMBER"
+		 const isOwner  = myRole === "OWNER"
+		 const isAdmin  = myRole === "OWNER" || myRole === "ADMIN"
+		 const myId     = state.user?.userId || state.user?.id
+		 const ROLE_LBL = { OWNER:"Dueño", ADMIN:"Admin", MEMBER:"Miembro" }
+
 		 state.members.forEach((m, i) => {
-			 const uid     = m.user?.id || 0
-			 const uname   = m.user?.username || m.user?.email || `Usuario #${uid}`
-			 const col     = avatarColor(uid)
-			 const initials = uname.substring(0,2).toUpperCase()
-			 const isMe    = uid === (state.user?.userId || state.user?.id)
-			 const isOwner = m.role === "OWNER"
-	 
+			 const uid         = m.user?.id || 0
+			 const uname       = m.user?.username || m.user?.email || `Usuario #${uid}`
+			 const col         = avatarColor(uid)
+			 const initials    = uname.substring(0,2).toUpperCase()
+			 const isMe        = uid === myId
+			 const memberOwner = m.role === "OWNER"
+			 const canChangeRole = isOwner && !memberOwner && !isMe
+			 const canRemove    = isAdmin && !memberOwner && !isMe
+			 const nextRole     = m.role === "MEMBER" ? "ADMIN" : "MEMBER"
+			 const roleLabel    = m.role === "MEMBER" ? "Hacer Admin" : "Quitar Admin"
+
 			 const row = document.createElement("div")
 			 row.className = "member-row"
 			 row.style.animationDelay = `${i*40}ms`
 			 row.innerHTML = `
 				 <div class="member-avatar" style="background:${col}">${initials}</div>
 				 <div class="member-info">
-					 <div class="member-name">${esc(uname)}${isMe?` <span style="color:var(--color-text-accent);font-size:0.65rem">(tú)</span>`:""}</div>
-					 <div class="member-sub">ID #${uid}</div>
+					 <div class="member-name">${esc(uname)}${isMe ? `<span class="member-you-tag">(tú)</span>` : ""}</div>
+					 <div class="member-sub">${esc(m.user?.email || `ID #${uid}`)}</div>
 				 </div>
-				 <span class="member-role-badge role-${m.role}">${m.role}</span>
-				 ${!isOwner && !isMe ? `
-					 <button class="btn-row-action del" data-uid="${uid}" title="Quitar miembro" style="margin-left:4px">
-						 <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+				 <span class="member-role-badge role-${m.role}">${ROLE_LBL[m.role] || m.role}</span>
+				 ${(canChangeRole || canRemove) ? `
+				 <div class="member-actions">
+					 ${canChangeRole ? `<button class="btn-member-action" data-action="role" title="${roleLabel}">
+						 <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+							 ${m.role === "MEMBER"
+								 ? `<path d="M7 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM2 13c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5M10.5 7v3M12 8.5h-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>`
+								 : `<path d="M7 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM2 13c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5M9.5 9h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>`}
+						 </svg>${roleLabel}</button>` : ""}
+					 ${canRemove ? `<button class="btn-member-action btn-member-remove" data-action="remove" title="Quitar del proyecto">
+						 <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
 							 <path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-						 </svg>
-					 </button>` : ""}
+						 </svg></button>` : ""}
+				 </div>` : ""}
 			 `
-			 const rmBtn = row.querySelector("[data-uid]")
-			 if (rmBtn) {
-				 rmBtn.addEventListener("click", () => {
-					 showConfirm(uname, "", async () => {
-						 try {
-							 await DELETE(`/projects/${state.currentProject.id}/members/${uid}`)
-							 state.members = state.members.filter(x => (x.user?.id||x.userId) !== uid)
-							 document.getElementById("tc-members").textContent = state.members.length
-							 renderMembers()
-							 updateProgress()
-							 toast("Miembro eliminado")
-						 } catch(e) { toast(e.message,"err") }
-					 })
+			 row.querySelectorAll("[data-action]").forEach(btn => {
+				 btn.addEventListener("click", () => {
+					 if (btn.dataset.action === "role") {
+						 showRoleConfirm(uname, nextRole, async () => {
+							 try {
+								 await PATCH(`/projects/${state.currentProject.id}/members/${uid}/role`, {newRole: nextRole})
+								 const idx = state.members.findIndex(x => (x.user?.id||x.userId) === uid)
+								 if (idx > -1) state.members[idx] = {...state.members[idx], role: nextRole}
+								 renderMembers()
+								 toast(`${uname} es ahora ${ROLE_LBL[nextRole]} ✓`)
+							 } catch(e) { toast(e.message, "err") }
+						 })
+					 }
+					 if (btn.dataset.action === "remove") {
+						 showConfirm(uname, "El usuario perderá acceso al proyecto.", async () => {
+							 try {
+								 await DELETE(`/projects/${state.currentProject.id}/members/${uid}`)
+								 state.members = state.members.filter(x => (x.user?.id||x.userId) !== uid)
+								 document.getElementById("tc-members").textContent = state.members.length
+								 renderMembers()
+								 updateProgress()
+								 toast("Miembro eliminado")
+							 } catch(e) { toast(e.message,"err") }
+						 })
+					 }
 				 })
-			 }
+			 })
 			 grid.appendChild(row)
 		 })
 	 }
@@ -757,7 +953,7 @@
 			 toast("Selecciona un usuario de los resultados", "err")
 			 return
 		 }
-		 const role            = document.getElementById("input-member-role").value
+		 const role            = csRole ? csRole.get() : "MEMBER"
 		 const invitedByUserId = state.user?.userId || state.user?.id
 		 try {
 			 const member = await POST(`/projects/${state.currentProject.id}/members`,
@@ -865,10 +1061,7 @@
 			 state.taskSearch = e.target.value.trim()
 			 renderKanban()
 		 })
-		 document.getElementById("task-sort").addEventListener("change", e => {
-			 state.taskSort = e.target.value
-			 renderKanban()
-		 })
+		 // task-sort now wired via CustomSelect in initCustomSelects()
 		 document.querySelectorAll("#tasks-filters .filter-chip").forEach(btn => {
 			 btn.addEventListener("click", () => {
 				 document.querySelectorAll("#tasks-filters .filter-chip").forEach(b => b.classList.remove("active"))
@@ -899,6 +1092,8 @@
 			 if (state.confirmCb) { state.confirmCb(); state.confirmCb = null }
 			 closeModal("modal-confirm")
 		 })
+		 document.getElementById("btn-go-home")?.addEventListener("click", clearLastProject)
+
 		 document.querySelectorAll(".modal-overlay").forEach(ov =>
 			 ov.addEventListener("click", e => { if (e.target === ov) closeModal(ov.id) }))
 		 document.addEventListener("keydown", e => {
@@ -906,10 +1101,23 @@
 		 })
 	 }
 	 
+	 function initCustomSelects() {
+		 const sortEl     = document.getElementById("task-sort-select")
+		 const roleEl     = document.getElementById("member-role-select")
+		 const prioEl     = document.getElementById("priority-select")
+		 const assigneeEl = document.getElementById("assignee-select")
+
+		 if (sortEl && !csSort)         csSort     = new CustomSelect(sortEl, val => { state.taskSort = val; renderKanban() })
+		 if (roleEl && !csRole)         csRole     = new CustomSelect(roleEl)
+		 if (prioEl && !csPriority)     csPriority = new CustomSelect(prioEl)
+		 if (assigneeEl && !csAssignee) csAssignee = new CustomSelect(assigneeEl)
+	 }
+
 	 /* ── Init ────────────────────────────────────── */
 	 document.addEventListener("DOMContentLoaded", async () => {
 		 if (!loadUser()) return
 		 bindEvents()
+		 initCustomSelects()
 		 initInvitePanel()
 		 await loadProjects()
 	 })
