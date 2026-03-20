@@ -25,7 +25,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "task")
@@ -46,8 +45,8 @@ public class Task {
     @Column(nullable = false)
     private LocalDateTime dateDeadline;
 
-    @Column(nullable = false)
-    @Transient
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
     private Priority priority;
 
     @Column(nullable = false)
@@ -200,22 +199,18 @@ public class Task {
     }
 
     public Priority getPriority() {
-        if (dateDeadline == null) {
-            return Priority.LOW;
-        }
-
-        Duration duration = Duration.between(LocalDateTime.now(), dateDeadline);
-        long daysRemaining = duration.toDays();
-
-        if (daysRemaining <= 3) {
-            return Priority.HIGH;
-        }
-
-        if (daysRemaining <= 7) {
-            return Priority.MID;
-        }
-
+        // Stored value takes precedence (user set it explicitly)
+        if (priority != null) return priority;
+        // Legacy: derive from deadline
+        if (dateDeadline == null) return Priority.LOW;
+        long days = Duration.between(LocalDateTime.now(), dateDeadline).toDays();
+        if (days <= 3) return Priority.HIGH;
+        if (days <= 7) return Priority.MID;
         return Priority.LOW;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
     }
 
     public void setProject(Project project) {

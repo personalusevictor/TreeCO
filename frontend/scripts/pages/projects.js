@@ -40,6 +40,31 @@ class CustomSelect {
         this.labelEl  = el.querySelector(".custom-select-label")
         this._bind()
     }
+    /** Position the fixed dropdown relative to the trigger using viewport coords */
+    _positionDropdown() {
+        const tr = this.trigger.getBoundingClientRect()
+        const dd = this.dropdown
+        const GAP = 6
+        const ddH = dd.offsetHeight || 240
+        const spaceBelow = window.innerHeight - tr.bottom - GAP
+        const spaceAbove = tr.top - GAP
+        const openUp = spaceBelow < ddH && spaceAbove > spaceBelow
+
+        // Width: match trigger or min 200px
+        const w = Math.max(tr.width, 200)
+        dd.style.width = w + "px"
+        dd.style.left  = tr.left + "px"
+
+        if (openUp) {
+            dd.style.top    = "auto"
+            dd.style.bottom = (window.innerHeight - tr.top + GAP) + "px"
+            this.el.classList.add("open-up")
+        } else {
+            dd.style.top    = (tr.bottom + GAP) + "px"
+            dd.style.bottom = "auto"
+            this.el.classList.remove("open-up")
+        }
+    }
     _bind() {
         this.trigger.addEventListener("click", e => {
             e.stopPropagation()
@@ -48,14 +73,14 @@ class CustomSelect {
             })
             this.toggle()
             if (this.el.classList.contains("open")) {
-                requestAnimationFrame(() => {
-                    const rect = this.dropdown.getBoundingClientRect()
-                    this.el.classList.toggle("open-up", rect.bottom > window.innerHeight - 12)
-                })
+                requestAnimationFrame(() => this._positionDropdown())
             }
         })
         this._bindOptions(this.dropdown)
         document.addEventListener("click", () => this.close())
+        // Reposition on scroll/resize while open
+        window.addEventListener("scroll", () => { if (this.el.classList.contains("open")) this._positionDropdown() }, true)
+        window.addEventListener("resize", () => { if (this.el.classList.contains("open")) this._positionDropdown() })
     }
     _bindOptions(container) {
         container.querySelectorAll(".custom-select-option").forEach(opt => {
@@ -85,9 +110,15 @@ class CustomSelect {
                 }
             }
             const hint = optEl.querySelector(".cs-role-hint")
-            const rawText = hint
-                ? optEl.textContent.replace(hint.textContent, "").trim()
-                : optEl.textContent.trim()
+            const userName = optEl.querySelector(".cs-user-name")
+            let rawText
+            if (userName) {
+                rawText = userName.textContent.trim()
+            } else if (hint) {
+                rawText = optEl.textContent.replace(hint.textContent, "").trim()
+            } else {
+                rawText = optEl.textContent.trim()
+            }
             if (this.labelEl) this.labelEl.textContent = rawText
         }
         if (this.onChange) this.onChange(val)
@@ -101,13 +132,16 @@ class CustomSelect {
             this.setValue(newOpt.dataset.value, newOpt)
             this.close()
         })
+        if (this.el.classList.contains("open")) {
+            requestAnimationFrame(() => this._positionDropdown())
+        }
     }
     clearOptions(keepFirst = true) {
         const opts = [...this.dropdown.querySelectorAll(".custom-select-option")]
         opts.slice(keepFirst ? 1 : 0).forEach(o => o.remove())
     }
 }
-let csSort = null, csRole = null, csPriority = null, csAssignee = null
+let csSort = null, csRole = null, csAssignee = null
 
 	 /* ── Utils ───────────────────────────────────── */
 	 function esc(s) {
@@ -560,12 +594,22 @@ let csSort = null, csRole = null, csPriority = null, csAssignee = null
 		 })
 	 }
 	 
+	 const TASK_TYPE_META = {
+		 NORMAL:        { lbl: "Tarea",      cls: "type-NORMAL", svg: `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+		 CODE:          { lbl: "Código",     cls: "type-CODE",   svg: `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6 2.5l-1.5 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+		 REVIEW:        { lbl: "Revisión",   cls: "type-REVIEW", svg: `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+		 MEETING:       { lbl: "Reunión",    cls: "type-MEETING",svg: `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h9M4.5 1.5v2M7.5 1.5v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
+		 DOCUMENTATION: { lbl: "Doc",        cls: "type-DOC",    svg: `<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 4.5h4M4 6.5h4M4 8.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
+	 }
+
 	 function buildTaskCard(t) {
 		 const st      = taskState(t)
 		 const prioKey = st==="done" ? "done" : st==="exp" ? "exp" : (t.priority||"MID")
 		 const prioLbl = st==="done" ? "Hecha" : st==="exp" ? "Vencida"
 			 : {HIGH:"Alta",MID:"Media",LOW:"Baja"}[t.priority] || "Media"
 		 const canEdit = state.currentRole === "OWNER" || state.currentRole === "ADMIN"
+		 const typeMeta = TASK_TYPE_META[t.type] || TASK_TYPE_META.NORMAL
+		 const showTypeBadge = true  // siempre mostrar tipo
 	 
 		 // Fecha límite
 		 let dlHtml = ""
@@ -624,6 +668,8 @@ let csSort = null, csRole = null, csPriority = null, csAssignee = null
 			 <div class="task-card-footer">
 				 <div class="task-card-meta">
 					 <span class="prio-chip prio-${prioKey}">${prioLbl}</span>
+					 ${showTypeBadge ? `<span class="task-type-badge ${typeMeta.cls}">${typeMeta.svg}${typeMeta.lbl}</span>` : ""}
+					 ${t.codeTask?.language ? `<span class="code-lang-chip">${esc(t.codeTask.language)}</span>` : ""}
 					 ${dlHtml}
 				 </div>
 				 ${assigneeHtml}
@@ -642,29 +688,34 @@ let csSort = null, csRole = null, csPriority = null, csAssignee = null
 		 state.editingTaskId = t ? t.id : null
 		 document.getElementById("modal-task-eyebrow").textContent = t ? "Editar tarea" : "Nueva tarea"
 		 document.getElementById("modal-task-title").textContent   = t ? "Modificar detalles" : "Detalles de la tarea"
-		 document.getElementById("task-input-title").value         = t?.title || ""
-		 document.getElementById("task-input-desc").value          = t?.description || ""
-		 document.getElementById("task-input-deadline").value      = t?.dateDeadline?.substring(0,10) || ""
+		 document.getElementById("task-input-title").value = t?.title || ""
+		 document.getElementById("task-input-desc").value   = t?.description || ""
+		 // Date picker reset
+		 if (window._dpReset) window._dpReset(t?.dateDeadline?.substring(0,10) || "")
 
-		 // Prioridad — custom select
-		 if (csPriority) {
-			 const prio = t?.priority || "MID"
-			 const prioOpt = csPriority.dropdown.querySelector(`[data-value="${prio}"]`)
-			 csPriority.setValue(prio, prioOpt)
-		 }
+		 // ── Tipo de tarea ──────────────────────────────────────────────
+		 const currentType = t?.type || "NORMAL"
+		 document.querySelectorAll(".type-pill").forEach(btn => {
+			 btn.classList.toggle("active", btn.dataset.type === currentType)
+		 })
+		 toggleCodeSection(currentType)
 
-		 // Asignado — custom select, rebuild options
+		 // ── Asignado — custom select ────────────────────────────────────
 		 if (csAssignee) {
 			 csAssignee.clearOptions(true)
 			 state.members.forEach(m => {
-				 const uid     = m.user?.id
-				 const uname   = m.user?.username || `Usuario #${uid}`
-				 const col     = avatarColor(uid)
+				 const uid      = m.user?.id
+				 const uname    = m.user?.username || `Usuario #${uid}`
+				 const uemail   = m.user?.email || ""
+				 const col      = avatarColor(uid)
 				 const initials = uname.substring(0,2).toUpperCase()
 				 csAssignee.addOption(`
 					 <div class="custom-select-option" data-value="${uid}">
 						 <span class="cs-avatar" style="background:${col}">${initials}</span>
-						 ${esc(uname)}
+						 <div class="cs-user-info">
+							 <span class="cs-user-name">${esc(uname)}</span>
+							 ${uemail ? `<span class="cs-user-email">${esc(uemail)}</span>` : ""}
+						 </div>
 					 </div>`)
 			 })
 			 const assignedId = t?.assignedTo?.id ? String(t.assignedTo.id) : ""
@@ -674,31 +725,256 @@ let csSort = null, csRole = null, csPriority = null, csAssignee = null
 			 csAssignee.setValue(assignedId, assignedOpt)
 		 }
 
+		 // ── CodeTask fields ─────────────────────────────────────────────
+		 document.getElementById("code-input-language").value = t?.codeTask?.language || ""
+		 document.getElementById("code-input-branch").value   = t?.codeTask?.branchName || ""
+		 document.getElementById("code-input-repo").value     = t?.codeTask?.repositoryUrl || ""
+
 		 openModal("modal-task")
 		 setTimeout(() => document.getElementById("task-input-title").focus(), 80)
 	 }
-	 
+
+	 function toggleCodeSection(type) {
+		 const section = document.getElementById("code-task-section")
+		 if (!section) return
+		 section.style.display = type === "CODE" ? "block" : "none"
+	 }
+
+	 // ── Type pills ──────────────────────────────────────────────────
+	 document.getElementById("task-type-pills").addEventListener("click", e => {
+		 const pill = e.target.closest(".type-pill")
+		 if (!pill) return
+		 document.querySelectorAll(".type-pill").forEach(p => p.classList.remove("active"))
+		 pill.classList.add("active")
+		 toggleCodeSection(pill.dataset.type)
+	 })
+
+	 // ── Priority hint (derived from deadline) ────────────────────────
+	 function calcPriorityFromDeadline(dateStr) {
+		 if (!dateStr) return null
+		 const today = new Date(); today.setHours(0,0,0,0)
+		 const dl    = new Date(dateStr + "T00:00:00")
+		 const days  = Math.ceil((dl - today) / 86400000)
+		 if (days <= 3) return { prio: "HIGH", label: "Alta", sub: `Vence en ${days === 0 ? "hoy" : days + "d"}`, color: "#ff6464" }
+		 if (days <= 7) return { prio: "MID",  label: "Media", sub: `Vence en ${days}d`, color: "#fbbf24" }
+		 return { prio: "LOW", label: "Baja", sub: `Vence en ${days}d`, color: "#3ddc84" }
+	 }
+
+	 function updatePrioHint(dateStr) {
+		 const hint     = document.getElementById("prio-hint")
+		 const dot      = document.getElementById("prio-hint-dot")
+		 const lbl      = document.getElementById("prio-hint-label")
+		 const sub      = document.getElementById("prio-hint-sub")
+		 if (!hint) return
+		 const result = calcPriorityFromDeadline(dateStr)
+		 if (!result) { hint.style.display = "none"; return }
+		 hint.style.display = "flex"
+		 dot.style.background = result.color
+		 lbl.textContent = result.label
+		 sub.textContent = result.sub
+		 hint.dataset.prio = result.prio
+	 }
+
+	 // ── Custom date picker ────────────────────────────────────────────
+	 ;(function initDatePicker() {
+		 const trigger    = document.getElementById("date-trigger")
+		 const triggerLbl = document.getElementById("date-trigger-label")
+		 const clearInner = document.getElementById("date-clear-btn")
+		 const popover    = document.getElementById("date-popover")
+		 const grid       = document.getElementById("dp-grid")
+		 const monthLbl   = document.getElementById("dp-month-label")
+		 const btnPrev    = document.getElementById("dp-prev")
+		 const btnNext    = document.getElementById("dp-next")
+		 const btnToday   = document.getElementById("dp-today-btn")
+		 const btnClear   = document.getElementById("dp-clear-btn")
+		 const hiddenInput= document.getElementById("task-input-deadline")
+
+		 let dpYear = new Date().getFullYear()
+		 let dpMonth = new Date().getMonth()
+		 let dpSelected = null  // Date object or null
+
+		 const MES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+			          "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+
+		 function dpDateStr(d) {
+			 return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+		 }
+		 function dpFmtLabel(d) {
+			 return d.toLocaleDateString("es-ES", {day:"numeric", month:"short", year:"numeric"})
+		 }
+
+		 function renderDpGrid() {
+			 const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
+			 monthLbl.textContent = cap(`${MES[dpMonth]} ${dpYear}`)
+			 grid.innerHTML = ""
+			 const today = new Date(); today.setHours(0,0,0,0)
+			 const firstDay = new Date(dpYear, dpMonth, 1)
+			 const offset = (firstDay.getDay() + 6) % 7  // Monday=0
+			 const daysInMonth = new Date(dpYear, dpMonth + 1, 0).getDate()
+
+			 for (let i = 0; i < offset; i++) {
+				 const blank = document.createElement("span")
+				 blank.className = "dp-day dp-blank"
+				 grid.appendChild(blank)
+			 }
+			 for (let d = 1; d <= daysInMonth; d++) {
+				 const date = new Date(dpYear, dpMonth, d)
+				 const dayEl = document.createElement("button")
+				 dayEl.type = "button"
+				 dayEl.className = "dp-day"
+				 dayEl.textContent = d
+				 if (date < today) {
+					 dayEl.classList.add("dp-past")
+				 } else if (+date === +today) {
+					 dayEl.classList.add("dp-today")
+				 }
+				 if (dpSelected && dpDateStr(date) === dpDateStr(dpSelected)) {
+					 dayEl.classList.add("dp-selected")
+				 } else if (dpSelected && date > today && date < dpSelected) {
+					 // Highlight range today→selected
+					 dayEl.classList.add("dp-in-range")
+					 if (+date === +today) dayEl.classList.add("dp-in-range-start")
+					 const nextDate = new Date(dpYear, dpMonth, d + 1)
+					 if (dpDateStr(nextDate) === dpDateStr(dpSelected)) dayEl.classList.add("dp-in-range-end")
+				 }
+				 dayEl.addEventListener("click", () => {
+					 dpSelected = date
+					 const val = dpDateStr(date)
+					 hiddenInput.value = val
+					 triggerLbl.textContent = dpFmtLabel(date)
+					 trigger.classList.add("date-trigger-set")
+					 clearInner.style.display = "flex"
+					 closeDp()
+					 updatePrioHint(val)
+				 })
+				 grid.appendChild(dayEl)
+			 }
+		 }
+
+		 function openDp() {
+			 popover.style.display = "block"
+			 trigger.classList.add("dp-open")
+			 renderDpGrid()
+			 // position: ensure it doesn't go off-screen
+			 requestAnimationFrame(() => {
+				 const rect = popover.getBoundingClientRect()
+				 if (rect.bottom > window.innerHeight - 20) {
+					 popover.classList.add("dp-up")
+				 } else {
+					 popover.classList.remove("dp-up")
+				 }
+			 })
+		 }
+		 function closeDp() {
+			 popover.style.display = "none"
+			 trigger.classList.remove("dp-open")
+		 }
+
+		 function clearDate() {
+			 dpSelected = null
+			 hiddenInput.value = ""
+			 triggerLbl.textContent = "Sin fecha"
+			 trigger.classList.remove("date-trigger-set")
+			 clearInner.style.display = "none"
+			 updatePrioHint("")
+			 closeDp()
+		 }
+
+		 trigger.addEventListener("click", e => {
+			 if (e.target.closest("#date-clear-btn")) return
+			 popover.style.display === "none" ? openDp() : closeDp()
+		 })
+		 clearInner.addEventListener("click", e => { e.stopPropagation(); clearDate() })
+		 btnPrev.addEventListener("click", () => {
+			 dpMonth--; if (dpMonth < 0) { dpMonth = 11; dpYear-- }; renderDpGrid()
+		 })
+		 btnNext.addEventListener("click", () => {
+			 dpMonth++; if (dpMonth > 11) { dpMonth = 0; dpYear++ }; renderDpGrid()
+		 })
+		 btnToday.addEventListener("click", () => {
+			 const today = new Date()
+			 dpYear = today.getFullYear(); dpMonth = today.getMonth()
+			 dpSelected = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+			 const val = dpDateStr(dpSelected)
+			 hiddenInput.value = val
+			 triggerLbl.textContent = dpFmtLabel(dpSelected)
+			 trigger.classList.add("date-trigger-set")
+			 clearInner.style.display = "flex"
+			 closeDp()
+			 updatePrioHint(val)
+		 })
+		 btnClear.addEventListener("click", clearDate)
+
+		 // Close on click outside
+		 document.addEventListener("click", e => {
+			 const wrap = trigger.closest(".date-field-wrap") || trigger.closest(".form-group")
+			 if (wrap && !wrap.contains(e.target)) closeDp()
+		 }, true)
+
+		 // Expose reset function for openTaskModal
+		 window._dpReset = (dateStr) => {
+			 if (dateStr) {
+				 const [y,m,d] = dateStr.split("-").map(Number)
+				 dpSelected = new Date(y, m-1, d)
+				 dpYear = dpSelected.getFullYear()
+				 dpMonth = dpSelected.getMonth()
+				 hiddenInput.value = dateStr
+				 triggerLbl.textContent = dpFmtLabel(dpSelected)
+				 trigger.classList.add("date-trigger-set")
+				 clearInner.style.display = "flex"
+			 } else {
+				 dpSelected = null
+				 const n = new Date()
+				 dpYear = n.getFullYear(); dpMonth = n.getMonth()
+				 hiddenInput.value = ""
+				 triggerLbl.textContent = "Sin fecha"
+				 trigger.classList.remove("date-trigger-set")
+				 clearInner.style.display = "none"
+			 }
+			 updatePrioHint(dateStr || "")
+		 }
+	 })()
+
 	 document.getElementById("btn-save-task").addEventListener("click", async () => {
 		 const title    = document.getElementById("task-input-title").value.trim()
 		 const desc     = document.getElementById("task-input-desc").value.trim()
-		 const priority = csPriority ? csPriority.get() : "MID"
 		 const deadline = document.getElementById("task-input-deadline").value || null
-		 const assigneeVal = csAssignee ? csAssignee.get() : ""
+
+		 // Tipo
+		 const activeTypePill = document.querySelector(".type-pill.active")
+		 const taskType = activeTypePill ? activeTypePill.dataset.type : "NORMAL"
+
+		 // Prioridad — derivada de la fecha límite (igual que el backend)
+		 const _hint = document.getElementById("prio-hint")
+		 const priority = (_hint && _hint.dataset.prio) ? _hint.dataset.prio : "MID"
+
+		 // Asignado
+		 const assigneeVal  = csAssignee ? csAssignee.get() : ""
 		 const assignedToId = assigneeVal ? parseInt(assigneeVal) : null
+
+		 // CodeTask
+		 const language      = document.getElementById("code-input-language").value.trim() || null
+		 const branchName    = document.getElementById("code-input-branch").value.trim()   || null
+		 const repositoryUrl = document.getElementById("code-input-repo").value.trim()     || null
 
 		 if (!title) { toast("El título es obligatorio","err"); return }
 
+		 const payload = {
+			 title, description: desc, priority,
+			 dateDeadline: deadline ? deadline + "T00:00:00" : null,
+			 type: taskType, language, branchName, repositoryUrl
+		 }
+
 		 try {
 			 if (state.editingTaskId) {
-				 const assignId = assigneeVal === "" ? -1 : assignedToId
-				 const updated = await PATCH(`/projects/${state.currentProject.id}/tasks/${state.editingTaskId}`,
-					 {title, description:desc, priority, dateDeadline:deadline, assignedToId: assignId})
+				 payload.assignedToId = assigneeVal === "" ? -1 : assignedToId
+				 const updated = await PATCH(`/projects/${state.currentProject.id}/tasks/${state.editingTaskId}`, payload)
 				 const idx = state.tasks.findIndex(t => t.id === state.editingTaskId)
 				 if (idx > -1) state.tasks[idx] = updated
 				 toast("Tarea actualizada ✓")
 			 } else {
-				 const created = await POST(`/projects/${state.currentProject.id}/tasks`,
-					 {title, description:desc, priority, dateDeadline:deadline, assignedToId})
+				 payload.assignedToId = assignedToId
+				 const created = await POST(`/projects/${state.currentProject.id}/tasks`, payload)
 				 state.tasks.unshift(created)
 				 document.getElementById("tc-tasks").textContent = state.tasks.length
 				 toast("Tarea creada ✓")
@@ -1104,12 +1380,10 @@ let csSort = null, csRole = null, csPriority = null, csAssignee = null
 	 function initCustomSelects() {
 		 const sortEl     = document.getElementById("task-sort-select")
 		 const roleEl     = document.getElementById("member-role-select")
-		 const prioEl     = document.getElementById("priority-select")
 		 const assigneeEl = document.getElementById("assignee-select")
 
 		 if (sortEl && !csSort)         csSort     = new CustomSelect(sortEl, val => { state.taskSort = val; renderKanban() })
 		 if (roleEl && !csRole)         csRole     = new CustomSelect(roleEl)
-		 if (prioEl && !csPriority)     csPriority = new CustomSelect(prioEl)
 		 if (assigneeEl && !csAssignee) csAssignee = new CustomSelect(assigneeEl)
 	 }
 

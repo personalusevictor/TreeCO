@@ -256,10 +256,12 @@
                         <div class="custom-select-option cs-selected" data-value="MEMBER">
                           <span class="cs-role-dot cs-role-member"></span>
                           Miembro
+                          <span class="cs-role-hint">Solo puede completar tareas</span>
                         </div>
                         <div class="custom-select-option" data-value="ADMIN">
                           <span class="cs-role-dot cs-role-admin"></span>
                           Administrador
+                          <span class="cs-role-hint">Gestiona miembros y tareas</span>
                         </div>
                       </div>
                     </div>
@@ -346,7 +348,7 @@
 
   <!-- ════════════ MODAL TAREA ════════════ -->
   <div class="modal-overlay" id="modal-task">
-    <div class="modal-card modal-card-lg">
+    <div class="modal-card modal-task-card">
       <div class="modal-card-header">
         <div class="modal-card-title-group">
           <span class="modal-eyebrow" id="modal-task-eyebrow">Nueva tarea</span>
@@ -358,42 +360,92 @@
           </svg>
         </button>
       </div>
+
       <div class="modal-card-body">
+
+        <!-- TIPO DE TAREA -->
+        <div class="form-group">
+          <label class="form-lbl">Tipo de tarea</label>
+          <div class="task-type-pills" id="task-type-pills">
+            <button class="type-pill active" data-type="NORMAL">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="3" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l1.5 1.5L9 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Normal
+            </button>
+            <button class="type-pill" data-type="CODE">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M4 5L2 7l2 2M10 5l2 2-2 2M7 3l-2 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Código
+            </button>
+            <button class="type-pill" data-type="REVIEW">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l1.5 1.5L9.5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Revisión
+            </button>
+            <button class="type-pill" data-type="MEETING">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 6h10M5 2v2M9 2v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Reunión
+            </button>
+            <button class="type-pill" data-type="DOCUMENTATION">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 5h4M5 7.5h4M5 10h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Doc
+            </button>
+          </div>
+        </div>
+
+        <!-- TÍTULO -->
         <div class="form-group">
           <label class="form-lbl">Título</label>
           <input class="proj-input proj-input-lg" id="task-input-title" placeholder="¿Qué hay que hacer?" autocomplete="off" />
         </div>
+
+        <!-- DESCRIPCIÓN -->
         <div class="form-group">
           <label class="form-lbl">Descripción <span class="form-opt">opcional</span></label>
           <textarea class="proj-input proj-textarea" id="task-input-desc" rows="2" placeholder="Contexto adicional…"></textarea>
         </div>
-        <div class="form-row-3">
+
+        <!-- FECHA + ASIGNAR -->
+        <div class="form-row-2">
           <div class="form-group">
-            <label class="form-lbl">Prioridad</label>
-            <div class="custom-select" id="priority-select" data-value="MID">
-              <button class="custom-select-trigger custom-select-trigger-input" type="button">
-                <span class="cs-prio-dot cs-prio-MID"></span>
-                <span class="custom-select-label">Media</span>
-                <svg class="custom-select-caret" width="8" height="8" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <label class="form-lbl">Fecha límite <span class="form-opt">opcional</span></label>
+            <div class="date-field-wrap">
+            <button class="date-trigger" id="date-trigger" type="button">
+              <span class="date-trigger-icon">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <rect x="2" y="3" width="10" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M2 6h10M5 2v2M9 2v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span id="date-trigger-label">Sin fecha</span>
+              <button class="date-clear-btn" id="date-clear-btn" type="button" style="display:none" title="Quitar fecha">
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                  <path d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </button>
-              <div class="custom-select-dropdown">
-                <div class="custom-select-option" data-value="HIGH">
-                  <span class="cs-prio-dot cs-prio-HIGH"></span>Alta
-                </div>
-                <div class="custom-select-option cs-selected" data-value="MID">
-                  <span class="cs-prio-dot cs-prio-MID"></span>Media
-                </div>
-                <div class="custom-select-option" data-value="LOW">
-                  <span class="cs-prio-dot cs-prio-LOW"></span>Baja
-                </div>
+            </button>
+            <!-- Popover con el mini-calendario -->
+            <div class="date-popover" id="date-popover" style="display:none">
+              <div class="dp-header">
+                <button class="dp-nav" id="dp-prev" type="button">‹</button>
+                <span class="dp-month-label" id="dp-month-label"></span>
+                <button class="dp-nav" id="dp-next" type="button">›</button>
+              </div>
+              <div class="dp-weekdays">
+                <span>Lu</span><span>Ma</span><span>Mi</span>
+                <span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
+              </div>
+              <div class="dp-grid" id="dp-grid"></div>
+              <div class="dp-footer">
+                <button class="dp-today-btn" id="dp-today-btn" type="button">Hoy</button>
+                <button class="dp-clear-btn" id="dp-clear-btn" type="button">Sin fecha</button>
               </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-lbl">Fecha límite</label>
-            <input class="proj-input" type="date" id="task-input-deadline" />
+            <!-- Input hidden para mantener el valor -->
+            <input type="hidden" id="task-input-deadline" />
+            </div><!-- /date-field-wrap -->
+            <div class="prio-hint" id="prio-hint" style="display:none">
+              <span class="prio-hint-dot" id="prio-hint-dot"></span>
+              <span class="prio-hint-label" id="prio-hint-label"></span>
+              <span class="prio-hint-sub" id="prio-hint-sub"></span>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-lbl">Asignar a</label>
@@ -416,13 +468,58 @@
             </div>
           </div>
         </div>
+
+        <!-- SECCIÓN CODE TASK (visible solo cuando type = CODE) -->
+        <div class="code-task-section" id="code-task-section" style="display:none">
+          <div class="code-task-header">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M4 5L2 7l2 2M10 5l2 2-2 2M7 3l-2 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Detalles del código
+          </div>
+          <div class="code-task-fields">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-lbl">
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 6h4M6 4v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                  Lenguaje
+                </label>
+                <input class="proj-input code-input" id="code-input-language" placeholder="TypeScript, Python, Java…" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6c0-2.2 1.8-4 4-4s4 1.8 4 4M3 9l1-3h4l1 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Rama <span class="form-opt">opcional</span>
+                </label>
+                <input class="proj-input code-input" id="code-input-branch" placeholder="feature/nombre-rama" autocomplete="off" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-lbl">
+                <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M3 5h6M3 7h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                URL del repositorio <span class="form-opt">opcional</span>
+              </label>
+              <div class="code-repo-wrap">
+                <span class="code-repo-icon">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                </span>
+                <input class="proj-input code-input code-input-repo" id="code-input-repo" placeholder="https://github.com/org/repo" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
+
       <div class="modal-card-footer">
         <button class="btn-cancel" id="modal-task-cancel">Cancelar</button>
         <button class="btn-confirm" id="btn-save-task">Guardar tarea</button>
       </div>
     </div>
   </div>
+
 
   <!-- ════════════ MODAL CONFIRMAR ════════════ -->
   <div class="modal-overlay" id="modal-confirm">
@@ -452,6 +549,7 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="./scripts/core/loadComponents.js"></script>
+  <script>loadComponent("header", "./components/header/header.html");</script>
   <script src="./scripts/pages/projects.js"></script>
 </body>
 </html>

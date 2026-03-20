@@ -7,7 +7,6 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.treeco.api.model.enums.State;
 import jakarta.persistence.*;
 

@@ -299,12 +299,19 @@
 		 const tasksWrapper = document.createElement("div")
 		 tasksWrapper.className = "day-tasks"
 		 const maxVisible = state.view === "week" ? 8 : 3
+		 const TYPE_ICONS = {
+			 CODE:          `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6 2.5l-1.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+			 REVIEW:        `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+			 MEETING:       `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h9M4.5 1.5v2M7.5 1.5v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
+			 DOCUMENTATION: `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 4.5h4M4 6.5h4M4 8.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
+		 }
 		 tasks.slice(0, maxVisible).forEach((t) => {
 			 const st = tState(t)
 			 const badgeClass = st === "done" ? "p-done" : st === "exp" ? "p-exp" : "p-" + (t.priority || "MID")
+			 const typeIcon = TYPE_ICONS[t.type] ? `<span class="tpill-type">${TYPE_ICONS[t.type]}</span>` : ""
 			 const pill = document.createElement("div")
 			 pill.className = `tpill ${badgeClass}`
-			 pill.innerHTML = `<span class="tpill-dot"></span><span class="tpill-txt">${esc(t.title)}</span>`
+			 pill.innerHTML = `<span class="tpill-dot"></span>${typeIcon}<span class="tpill-txt">${esc(t.title)}</span>`
 			 pill.addEventListener("click", (e) => {
 				 e.stopPropagation()
 				 openModal(date)
@@ -452,10 +459,17 @@
 			 ui.mList.innerHTML = `<div class="m-empty"><span class="m-empty-icon">📭</span>Sin tareas aquí</div>`
 			 return
 		 }
+		 const TYPE_LABELS = {
+			 CODE:          { lbl:"Código",   cls:"tag-code",    svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6 2.5l-1.5 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+			 REVIEW:        { lbl:"Revisión", cls:"tag-review",  svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+			 MEETING:       { lbl:"Reunión",  cls:"tag-meeting", svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h9M4.5 1.5v2M7.5 1.5v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
+			 DOCUMENTATION: { lbl:"Doc",      cls:"tag-doc",     svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 4.5h4M4 6.5h4M4 8.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
+		 }
 		 list.forEach((t) => {
 			 const st = tState(t)
 			 const taskClass = st === "done" ? "t-done" : st === "exp" ? "t-exp" : "t-" + (t.priority || "MID")
 			 const priorityTag = prioTag(t.priority, st)
+			 const typeMeta = TYPE_LABELS[t.type]
 			 const el = document.createElement("div")
 			 el.className = `m-task ${taskClass}`
 			 el.innerHTML = `
@@ -465,6 +479,7 @@
 							${t.description ? `<div class="m-desc">${esc(t.description)}</div>` : ""}
 							<div class="m-meta">
 								<span class="m-tag ${priorityTag.cls}">${priorityTag.lbl}</span>
+								${typeMeta ? `<span class="m-tag ${typeMeta.cls}">${typeMeta.svg}${typeMeta.lbl}</span>` : ""}
 								${t._pName ? `<span class="m-tag tag-proj">${esc(t._pName)}</span>` : ""}
 							</div>
 						</div>
