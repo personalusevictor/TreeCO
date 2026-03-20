@@ -299,19 +299,12 @@
 		 const tasksWrapper = document.createElement("div")
 		 tasksWrapper.className = "day-tasks"
 		 const maxVisible = state.view === "week" ? 8 : 3
-		 const TYPE_ICONS = {
-			 CODE:          `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6 2.5l-1.5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-			 REVIEW:        `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-			 MEETING:       `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h9M4.5 1.5v2M7.5 1.5v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
-			 DOCUMENTATION: `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 4.5h4M4 6.5h4M4 8.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
-		 }
 		 tasks.slice(0, maxVisible).forEach((t) => {
 			 const st = tState(t)
 			 const badgeClass = st === "done" ? "p-done" : st === "exp" ? "p-exp" : "p-" + (t.priority || "MID")
-			 const typeIcon = TYPE_ICONS[t.type] ? `<span class="tpill-type">${TYPE_ICONS[t.type]}</span>` : ""
 			 const pill = document.createElement("div")
 			 pill.className = `tpill ${badgeClass}`
-			 pill.innerHTML = `<span class="tpill-dot"></span>${typeIcon}<span class="tpill-txt">${esc(t.title)}</span>`
+			 pill.innerHTML = `<span class="tpill-dot"></span><span class="tpill-txt">${esc(t.title)}</span>`
 			 pill.addEventListener("click", (e) => {
 				 e.stopPropagation()
 				 openModal(date)
@@ -459,17 +452,10 @@
 			 ui.mList.innerHTML = `<div class="m-empty"><span class="m-empty-icon">📭</span>Sin tareas aquí</div>`
 			 return
 		 }
-		 const TYPE_LABELS = {
-			 CODE:          { lbl:"Código",   cls:"tag-code",    svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6 2.5l-1.5 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
-			 REVIEW:        { lbl:"Revisión", cls:"tag-review",  svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
-			 MEETING:       { lbl:"Reunión",  cls:"tag-meeting", svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h9M4.5 1.5v2M7.5 1.5v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
-			 DOCUMENTATION: { lbl:"Doc",      cls:"tag-doc",     svg:`<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 4.5h4M4 6.5h4M4 8.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>` },
-		 }
 		 list.forEach((t) => {
 			 const st = tState(t)
 			 const taskClass = st === "done" ? "t-done" : st === "exp" ? "t-exp" : "t-" + (t.priority || "MID")
 			 const priorityTag = prioTag(t.priority, st)
-			 const typeMeta = TYPE_LABELS[t.type]
 			 const el = document.createElement("div")
 			 el.className = `m-task ${taskClass}`
 			 el.innerHTML = `
@@ -479,7 +465,6 @@
 							${t.description ? `<div class="m-desc">${esc(t.description)}</div>` : ""}
 							<div class="m-meta">
 								<span class="m-tag ${priorityTag.cls}">${priorityTag.lbl}</span>
-								${typeMeta ? `<span class="m-tag ${typeMeta.cls}">${typeMeta.svg}${typeMeta.lbl}</span>` : ""}
 								${t._pName ? `<span class="m-tag tag-proj">${esc(t._pName)}</span>` : ""}
 							</div>
 						</div>
@@ -868,3 +853,142 @@
 	 }
 	 
 	 document.addEventListener("DOMContentLoaded", init)
+/* ═══════════════════════════════════════════════
+
+
+
+/* ═══════════════════════════════════════════════
+   MÓVIL — FAB + Drawer de próximas tareas
+   ═══════════════════════════════════════════════ */
+;(function () {
+  const BREAK = 600
+
+  const fab        = document.getElementById('fab-toggle')
+  const overlay    = document.getElementById('sidebar-overlay')
+  const drawer     = document.getElementById('mobile-drawer')
+  const drawerBody = document.getElementById('mobile-drawer-body')
+  const drawerClose= document.getElementById('mobile-drawer-close')
+  if (!fab || !overlay || !drawer || !drawerBody) return
+
+  let isOpen = false
+
+  const PRIO_COLOR = {
+    HIGH: 'rgba(255,100,100,0.85)',
+    MID : 'rgba(251,191,36,0.85)',
+    LOW : 'rgba(61,220,132,0.85)',
+  }
+
+  function renderDrawer () {
+    drawerBody.innerHTML = ''
+    const now = today()
+    const end = new Date(now)
+    end.setDate(now.getDate() + 14)
+
+    const list = state.tasks
+      .filter(t => {
+        if (t.completed) return false
+        const dl = parseDL(t)
+        return dl && dl >= now && dl <= end
+      })
+      .sort((a, b) => parseDL(a) - parseDL(b))
+
+    if (!list.length) {
+      drawerBody.innerHTML = `
+        <div class="md-empty">
+          <span class="md-empty-icon">🌿</span>
+          Sin tareas en los próximos 14 días
+        </div>`
+      return
+    }
+
+    // Agrupar por fecha
+    const groups = {}
+    list.forEach(t => {
+      const key = dateStr(parseDL(t))
+      if (!groups[key]) groups[key] = { dl: parseDL(t), tasks: [] }
+      groups[key].tasks.push(t)
+    })
+
+    Object.values(groups).forEach(({ dl, tasks }) => {
+      const dLeft = Math.round((dl - now) / 86400000)
+      let label
+      if      (dLeft === 0) label = 'Hoy'
+      else if (dLeft === 1) label = 'Mañana'
+      else label = cap(dl.toLocaleDateString('es-ES', {
+        weekday: 'long', day: 'numeric', month: 'short'
+      }))
+
+      const sep = document.createElement('span')
+      sep.className = 'md-date-sep'
+      sep.textContent = label
+      drawerBody.appendChild(sep)
+
+      tasks.forEach(t => {
+        const d = Math.round((parseDL(t) - now) / 86400000)
+        let cls, txt
+        if      (d === 0) { cls = 'md-badge-today';  txt = 'Hoy' }
+        else if (d === 1) { cls = 'md-badge-tmrw';   txt = 'Mañana' }
+        else if (d <= 3)  { cls = 'md-badge-urgent'; txt = `${d}d` }
+        else              { cls = 'md-badge-soon';   txt = `${d}d` }
+
+        const color = PRIO_COLOR[t.priority] || PRIO_COLOR.MID
+        const el = document.createElement('div')
+        el.className = 'md-task-item'
+        el.innerHTML = `
+          <div class="md-task-bar" style="background:${color}"></div>
+          <div class="md-task-info">
+            <span class="md-task-title">${esc(t.title)}</span>
+            <span class="md-task-sub">${esc(t._pName || '')}</span>
+          </div>
+          <span class="md-task-badge ${cls}">${txt}</span>`
+        el.addEventListener('click', () => {
+          const dl = parseDL(t)
+          if (!dl) return
+          state.selectedDate = dl
+          state.currentDate = new Date(dl.getFullYear(), dl.getMonth(), 1)
+          close()
+          render()
+          openModal(dl)
+        })
+        drawerBody.appendChild(el)
+      })
+    })
+  }
+
+  function open () {
+    if (window.innerWidth > BREAK) return
+    isOpen = true
+    renderDrawer()
+    drawer.classList.add('is-open')
+    overlay.classList.add('is-visible')
+    fab.classList.add('is-open')
+    document.body.style.overflow = 'hidden'
+  }
+
+  function close () {
+    isOpen = false
+    drawer.classList.remove('is-open')
+    overlay.classList.remove('is-visible')
+    fab.classList.remove('is-open')
+    document.body.style.overflow = ''
+  }
+
+  fab.addEventListener('click', () => isOpen ? close() : open())
+  overlay.addEventListener('click', close)
+  if (drawerClose) drawerClose.addEventListener('click', close)
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isOpen) close()
+  })
+
+  // Swipe-down cierra el drawer
+  let y0 = 0
+  drawer.addEventListener('touchstart', e => { y0 = e.touches[0].clientY }, { passive: true })
+  drawer.addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientY - y0 > 55) close()
+  }, { passive: true })
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > BREAK && isOpen) close()
+  })
+})()

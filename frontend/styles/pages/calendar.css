@@ -1444,17 +1444,587 @@
   }
 }
 
-/* ── Task type badges in modal ───────────────── */
-.tag-code    { background: rgba(99,179,237,0.10);  color: #63b3ed;  border: 1px solid rgba(99,179,237,0.18); }
-.tag-review  { background: rgba(154,117,234,0.10); color: #9a75ea;  border: 1px solid rgba(154,117,234,0.18); }
-.tag-meeting { background: rgba(251,191,36,0.10);  color: #fbbf24;  border: 1px solid rgba(251,191,36,0.18); }
-.tag-doc     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.08); }
+/* ═══════════════════════════════════════════════════════════
+   TREECO — RESPONSIVE
+   ───────────────────────────────────────────────────────────
 
-/* ── Task type icon in calendar pills ─────────── */
-.tpill-type {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  opacity: 0.75;
+   El layout desktop funciona así:
+     body              → flex-column, height:100vh, overflow:hidden
+       header          → flex-shrink:0
+       .cal-page       → flex:1, grid(260px 1fr), overflow:hidden
+         .cal-sidebar  → columna izquierda
+         .cal-section  → grid(auto auto 1fr), overflow:hidden
+           .cal-bar    → auto
+           .weekdays-row → auto
+           .cal-grid   → 1fr  ← rellena TODO el espacio restante
+
+   Para móvil hay que ROMPER esa cadena de alturas fijas:
+     • body deja de ser height:100vh / overflow:hidden
+     • .cal-page deja de ser overflow:hidden
+     • .cal-section deja de ser overflow:hidden
+     • .cal-grid deja de ser height:100%
+     • Todo pasa a fluir naturalmente con scroll del body
+
+   Breakpoints reales:
+     ≤ 1024px  — tablet landscape / laptop pequeño
+     ≤  768px  — tablet portrait  (iPad mini, iPad Air)
+     ≤  600px  — móvil grande     (iPhone 15 Plus: 430px, Pixel: 412px)
+     ≤  430px  — móvil estándar   (iPhone 15: 393px, iPhone 14: 390px)
+     ≤  375px  — móvil pequeño    (iPhone SE: 375px)
+
+   ═══════════════════════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────────────────────
+   1. TABLET LANDSCAPE / LAPTOP PEQUEÑO  ≤ 1024px
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .cal-page {
+    grid-template-columns: 210px 1fr;
+    gap: 14px;
+    padding: 12px 16px 12px 12px;
+  }
+
+  .title-month { font-size: 1.1rem; }
+
+  .search-wrap { min-width: 160px; }
+  .search-input { width: 120px; }
+
+  /* Upcoming más corto */
+  .upcoming-list { max-height: 160px; }
 }
-.tpill-type svg { display: block; }
+
+
+/* ─────────────────────────────────────────────────────────
+   2. TABLET PORTRAIT  ≤ 768px
+   Sidebar pasa a banda horizontal encima del grid.
+   Body sigue siendo flex-column pero ahora con scroll.
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* ── Romper el body fijo ── */
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* ── cal-page: columna, fluye con el contenido ── */
+  .cal-page {
+    display: flex;
+    flex-direction: column;
+    flex: unset;
+    min-height: 0;
+    padding: 10px 14px 24px;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  /* ── Sidebar: banda horizontal scrollable ── */
+  .cal-sidebar {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: visible;
+    gap: 10px;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cal-sidebar::-webkit-scrollbar { display: none; }
+
+  .mini-cal     { flex: 0 0 220px; }
+  .sidebar-card { flex: 0 0 auto;  }
+  .upcoming-card {
+    flex: 0 0 230px;
+    max-height: none;
+  }
+  .legend-grid { grid-template-columns: repeat(3, auto); }
+
+  /* ── cal-section: fluye, sin overflow hidden ── */
+  .cal-section {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+    min-height: 0;
+    gap: 8px;
+    position: relative; /* para el loading overlay */
+  }
+
+  /* ── cal-bar: 2 filas cuando el toolbar no cabe ── */
+  .cal-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .toolbar {
+    order: 10;
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+  .search-wrap  { flex: 1; min-width: 0; }
+  .search-input { width: 100%; flex: 1; min-width: 0; }
+
+  /* ── Grid: altura automática, celdas con mínimo cómodo ── */
+  .cal-grid {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    grid-auto-rows: minmax(96px, auto);
+  }
+  .cal-grid.week-view {
+    grid-auto-rows: minmax(160px, auto);
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   3. MÓVIL  ≤ 600px
+   Sidebar desaparece del flujo → accesible via FAB + drawer.
+   El grid usa grid-auto-rows:1fr dentro de una altura calculada
+   para llenar el viewport completo disponible.
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+
+  /* ── Body ── */
+  body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* ── cal-page: vuelve a llenar el viewport ── */
+  .cal-page {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 8px 10px 0;
+    gap: 7px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── Sidebar: fuera del flujo en móvil ── */
+  .cal-sidebar { display: none; }
+
+  /* ── cal-section: ocupa todo el espacio restante ── */
+  .cal-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 6px;
+    position: relative;
+  }
+
+  /* ── cal-bar: 1 fila, sin buscador ── */
+  .cal-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* El buscador y el selector se ocultan en móvil */
+  .toolbar { display: none; }
+
+  /* Título */
+  .title-month {
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+  .title-year  { font-size: 0.88rem; }
+  .title-btn   { gap: 5px; padding: 4px 6px; }
+  .title-caret { display: none; } /* ahorra espacio */
+
+  .nav-group   { gap: 4px; }
+  .icon-btn    { width: 34px; height: 34px; border-radius: 9px; }
+  .bar-actions { gap: 6px; flex-shrink: 0; }
+  .btn-today   { padding: 6px 12px; font-size: 0.8rem; }
+  .vbtn        { padding: 6px 10px;  font-size: 0.8rem; }
+
+  /* ── Días de la semana ── */
+  .weekdays-row {
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .weekdays-row span {
+    font-size: 0.65rem;
+    padding: 3px 0;
+    letter-spacing: 0;
+  }
+
+  /* ── Grid: 1fr LLENA todo el espacio disponible ── */
+  /* El sistema flex hace que .cal-section tenga flex:1,
+     y dentro el grid toma min-height:0 + height:100%.
+     grid-auto-rows:1fr distribuye equitativamente. */
+  .cal-grid {
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    gap: 3px;
+    grid-auto-rows: 1fr;
+  }
+  .cal-grid.week-view {
+    flex: unset;
+    height: auto;
+    grid-auto-rows: minmax(130px, auto);
+    overflow: visible;
+  }
+
+  /* ── Celda ── */
+  .cal-day {
+    padding: 5px 6px 4px;
+    border-radius: 8px;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .day-hdr     { margin-bottom: 2px; }
+  .day-num {
+    font-size: 0.78rem;
+    min-width: 22px;
+    min-height: 22px;
+  }
+  .cal-day.today .day-num { font-size: 0.76rem; }
+  .day-cnt {
+    font-size: 0.58rem;
+    padding: 1px 4px;
+  }
+
+  /* Pills: punto + texto truncado */
+  .day-tasks   { gap: 2px; }
+  .tpill {
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    gap: 3px;
+    border-radius: 4px;
+  }
+  .tpill-dot { width: 4px; height: 4px; }
+  .day-more  { font-size: 0.6rem; margin-top: 1px; }
+
+  /* ── OVERLAY ── */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 390;
+    background: rgba(5, 10, 8, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .sidebar-overlay.is-visible { display: block; }
+
+  /* ── FAB ── */
+  .fab-toggle {
+    display: flex;
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    z-index: 380;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--color-green-primary);
+    color: #050a08;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 4px 20px rgba(61, 220, 132, 0.38),
+      0 2px 8px rgba(0, 0, 0, 0.5);
+    transition:
+      transform 0.18s var(--ease-bounce),
+      background 0.18s,
+      box-shadow 0.18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab-toggle:active { transform: scale(0.9); }
+  .fab-toggle.is-open {
+    background: rgba(30, 40, 34, 0.96);
+    color: var(--color-text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .fab-toggle .fab-icon-cal   { display: block; }
+  .fab-toggle .fab-icon-close { display: none;  }
+  .fab-toggle.is-open .fab-icon-cal   { display: none;  }
+  .fab-toggle.is-open .fab-icon-close { display: block; }
+
+  /* ── DRAWER de tareas próximas ── */
+  .mobile-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 400;
+    background: rgba(9, 15, 11, 0.98);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    max-height: 70vh;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .mobile-drawer.is-open { transform: translateY(0); }
+
+  .mobile-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.13);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .mobile-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .mobile-drawer-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .mobile-drawer-close {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: var(--color-text-muted);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .mobile-drawer-close:active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+  }
+  .mobile-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 18px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-drawer-body::-webkit-scrollbar { display: none; }
+
+  /* Items dentro del drawer */
+  .md-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.12s;
+  }
+  .md-task-item:last-child { border-bottom: none; }
+  .md-task-item:active     { opacity: 0.5; }
+
+  .md-task-bar {
+    width: 3px;
+    min-height: 36px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+  .md-task-info { flex: 1; min-width: 0; }
+  .md-task-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    line-height: 1.35;
+  }
+  .md-task-sub {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    display: block;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .md-task-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 4px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .md-badge-today  { background: rgba(61,220,132,0.13);  color: var(--color-green-primary); }
+  .md-badge-tmrw   { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+  .md-badge-urgent { background: rgba(255,100,100,0.12); color: #ff8c8c; }
+  .md-badge-soon   { background: rgba(255,255,255,0.07); color: var(--color-text-muted); }
+
+  .md-empty {
+    text-align: center;
+    padding: 36px 0 16px;
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+  }
+  .md-empty-icon { display: block; font-size: 2rem; margin-bottom: 10px; opacity: 0.25; }
+
+  .md-date-sep {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+    display: block;
+    padding: 14px 0 4px;
+  }
+  .md-date-sep:first-child { padding-top: 8px; }
+
+  /* ── MODAL: bottom sheet en móvil ── */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  .modal-box {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .modal-overlay.open .modal-box {
+    transform: translateY(0);
+  }
+  /* Handle encima del modal */
+  .modal-head::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+  .modal-head {
+    padding: 12px 18px 10px;
+  }
+  .modal-filters { padding: 6px 18px; }
+  .modal-body    { padding: 10px 18px; }
+  .modal-foot    {
+    padding: 10px 18px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Áreas táctiles ≥ 44px (WCAG 2.5.5) */
+  .icon-btn     { min-width: 44px; min-height: 44px; }
+  .vbtn         { min-height: 44px; }
+  .btn-today    { min-height: 44px; }
+  .mf           { min-height: 40px; padding: 8px 14px; }
+  .m-check      { width: 26px; height: 26px; }
+  .add-task-btn { min-height: 48px; font-size: 0.9rem; }
+  .mini-nav-btn { min-width: 44px; min-height: 44px; }
+  .pm-btn       { min-height: 44px; }
+
+  /* ── PICKER ── */
+  .picker-box {
+    width: calc(100vw - 20px);
+    max-width: 400px;
+    border-radius: 20px;
+  }
+
+  /* Toasts: dejan espacio al FAB */
+  .toast-container {
+    right: 72px;
+    left: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    align-items: stretch;
+  }
+  .toast {
+    justify-content: center;
+    text-align: center;
+    font-size: 0.84rem;
+    border-radius: 10px;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   4. MÓVIL ESTÁNDAR  ≤ 430px  (iPhone 15 / 14 / 13)
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 430px) {
+  .cal-page {
+    padding: 6px 8px 0;
+    gap: 5px;
+  }
+
+  .cal-bar { padding: 7px 8px; gap: 6px; }
+
+  .title-month { font-size: 0.95rem; }
+  .title-year  { font-size: 0.82rem; }
+  .icon-btn    { width: 32px; height: 32px; min-width: 40px; min-height: 40px; }
+  .btn-today   { padding: 5px 10px; font-size: 0.77rem; }
+  .vbtn        { padding: 5px 8px;  font-size: 0.77rem; }
+
+  .weekdays-row span { font-size: 0.6rem; }
+
+  .cal-grid { gap: 2px; }
+  .cal-day  { padding: 4px 5px 3px; border-radius: 7px; }
+  .day-num  { font-size: 0.74rem; min-width: 20px; min-height: 20px; }
+  .cal-day.today .day-num { font-size: 0.72rem; }
+
+  /* En iphones pequeños el badge de conteo sobra */
+  .day-cnt { display: none; }
+
+  .tpill     { padding: 1px 4px; font-size: 0.6rem; }
+  .tpill-dot { width: 3px; height: 3px; }
+  .day-more  { font-size: 0.57rem; }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   5. MÓVIL PEQUEÑO  ≤ 375px  (iPhone SE)
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 375px) {
+  .cal-page { padding: 5px 6px 0; gap: 4px; }
+  .cal-bar  { padding: 6px 7px; }
+  .title-month { font-size: 0.88rem; }
+  .cal-grid    { gap: 2px; }
+  .cal-day     { padding: 3px 4px 2px; }
+  .day-num     { font-size: 0.7rem; min-width: 18px; min-height: 18px; }
+  .fab-toggle  { width: 46px; height: 46px; right: 12px; }
+}
+
+
+/* ─────────────────────────────────────────────────────────
+   FAB / DRAWER / OVERLAY — ocultos en desktop por defecto
+   ───────────────────────────────────────────────────────── */
+.fab-toggle      { display: none; }
+.mobile-drawer   { display: none; }
+.sidebar-overlay { display: none; position: fixed; inset: 0;
+                   z-index: 390; background: rgba(5,10,8,0.65);
+                   backdrop-filter: blur(4px); }
