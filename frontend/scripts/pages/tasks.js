@@ -1,11 +1,6 @@
 import { api, requireAuth } from "../core/api.js"
 import { getUser } from "../core/session.js"
 
-/**
- * Títulos de sección para cada categoría de la barra lateral.
- * Se usan para actualizar el encabezado visible al cambiar de categoría.
- * @type {Record<string, string>}
- */
 const CATEGORY_SECTION_TITLES = {
   all: "Todas las tareas",
   in_progress: "En progreso",
@@ -18,32 +13,19 @@ const CATEGORY_SECTION_TITLES = {
   without_deadline: "Sin fecha",
 }
 
-/** Caché de las tareas cargadas desde la API para evitar refetch al filtrar. */
 let cachedTasksList = []
-
-/**
- * Mapa de ID de proyecto → nombre de proyecto.
- * Se construye al cargar proyectos y se reutiliza al renderizar tarjetas.
- * @type {Record<string | number, string>}
- */
+let projectsList = []
 let projectIdToNameMap = {}
+let editingTaskId = null
 
-/**
- * Estado global de los filtros activos en la página.
- * Se actualiza desde la barra lateral, los selectores y el buscador.
- */
 const taskFilters = {
-  search: "", // Texto de búsqueda introducido por el usuario, normalizado a minúsculas
-  state: "all", // Estado seleccionado para filtrar tareas: "all" | "in_progress" | "completed" | "expired"
-  priority: "all", // Prioridad seleccionada para filtrar tareas: "all" | "high" | "mid" | "low"
-  project: "all", // Identificador del proyecto seleccionado o "all" si no hay filtro de proyecto
-  sort: "deadline", // Criterio de ordenación activo: "deadline" | "priority" | "title" | "created"
-  category: "in_progress", // Categoría actualmente activa en la barra lateral
+  search: "",
+  state: "all",
+  priority: "all",
+  project: "all",
+  sort: "deadline",
+  category: "all",
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INICIALIZACIÓN
-// ─────────────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
   requireAuth()
@@ -51,27 +33,23 @@ document.addEventListener("DOMContentLoaded", () => {
   loadTasksFromApi()
 })
 
-/**
- * Registra todos los listeners de la página:
- * - Buscador de tareas
- * - Selectores de filtro (estado, prioridad, proyecto, ordenación)
- * - Botón "Nueva tarea"
- * - Botones de la barra lateral (categorías)
- * - Delegación de eventos para editar y completar tareas
- */
 function setupTaskPageEventListeners() {
-  document.getElementById("searchTask")?.addEventListener("input", (inputEvent) => {
-    taskFilters.search = String(inputEvent.target.value ?? "")
+  document.getElementById("searchTask")?.addEventListener("input", (event) => {
+    taskFilters.search = String(event.target.value ?? "")
       .toLowerCase()
       .trim()
     applyTaskFilters()
   })
 
-  document.getElementById("filterState")?.addEventListener("change", (changeEvent) => {
-    taskFilters.state = changeEvent.target.value
+  document.getElementById("filterState")?.addEventListener("change", (event) => {
+    taskFilters.state = event.target.value
 
-    // Relaciona cada valor del selector de estado con la categoría equivalente de la barra lateral
-    const categoryByStateValue = { all: "all", in_progress: "in_progress", completed: "completed", expired: "expired" }
+    const categoryByStateValue = {
+      all: "all",
+      in_progress: "in_progress",
+      completed: "completed",
+      expired: "expired",
+    }
 
     taskFilters.category = categoryByStateValue[taskFilters.state] ?? "all"
     updateActiveSidebarCategoryButton()
@@ -79,477 +57,613 @@ function setupTaskPageEventListeners() {
     applyTaskFilters()
   })
 
-  document.getElementById("filterPriority")?.addEventListener("change", (changeEvent) => {
-    taskFilters.priority = changeEvent.target.value
+  document.getElementById("filterPriority")?.addEventListener("change", (event) => {
+    taskFilters.priority = event.target.value
     applyTaskFilters()
   })
 
-  document.getElementById("filterProject")?.addEventListener("change", (changeEvent) => {
-    taskFilters.project = changeEvent.target.value
+  document.getElementById("filterProject")?.addEventListener("change", (event) => {
+    taskFilters.project = event.target.value
     applyTaskFilters()
   })
 
-  document.getElementById("sortTasks")?.addEventListener("change", (changeEvent) => {
-    taskFilters.sort = changeEvent.target.value
+  document.getElementById("sortTasks")?.addEventListener("change", (event) => {
+    taskFilters.sort = event.target.value
     applyTaskFilters()
+  })
+
+  document.querySelectorAll(".tasksSidebarLink").forEach((button) => {
+    button.addEventListener("click", () => {
+      applySidebarCategory(button.dataset.category ?? "all")
+    })
   })
 
   document.getElementById("newTaskButton")?.addEventListener("click", () => {
-    globalThis.location.href = "/tasks/create.html"
+    alert("La creación ya no usa modal en esta versión. Hazla desde la vista/proyecto donde la tengas implementada.")
   })
 
-  // Registra un listener en cada botón de categoría de la barra lateral
-  document.querySelectorAll(".tasksSidebarLink").forEach((sidebarCategoryButton) => {
-    sidebarCategoryButton.addEventListener("click", () => applySidebarCategory(sidebarCategoryButton.dataset.category ?? "all"))
-  })
+  document.addEventListener("click", async (event) => {
+    const editButton = event.target.closest(".editTask")
+    const cancelEditButton = event.target.closest(".cancelEditTask")
+    const saveEditButton = event.target.closest(".saveEditTask")
+    const toggleButton = event.target.closest(".toggleTaskState")
+    const deleteButton = event.target.closest(".deleteTask")
 
-  // Usa delegación de eventos para manejar clicks en botones dinámicos de editar y completar
-  document.addEventListener("click", async (clickEvent) => {
-    const editTaskButton = clickEvent.target.closest(".editTask")
-    const completeTaskButton = clickEvent.target.closest(".completeTask")
-
-    if (editTaskButton) {
-      if (!editTaskButton.dataset.id) return
-      globalThis.location.href = `/tasks/edit.html?id=${encodeURIComponent(editTaskButton.dataset.id)}`
+    if (editButton) {
+      startInlineEdit(editButton.dataset.id)
       return
     }
 
-    if (completeTaskButton) {
-      await markTaskAsComplete(completeTaskButton.dataset.id, completeTaskButton)
+    if (cancelEditButton) {
+      cancelInlineEdit()
+      return
+    }
+
+    if (saveEditButton) {
+      await saveInlineEdit(saveEditButton.dataset.id)
+      return
+    }
+
+    if (toggleButton) {
+      await toggleTaskCompletion(toggleButton.dataset.id)
+      return
+    }
+
+    if (deleteButton) {
+      await deleteTask(deleteButton.dataset.id)
     }
   })
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CARGA DE DATOS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Carga tareas y proyectos del usuario desde la API.
- * Actualiza el caché local, el mapa de proyectos y dispara el filtrado inicial.
- * Muestra un mensaje de error en el contenedor si algo falla.
- */
 async function loadTasksFromApi() {
-  const tasksContainerElement = document.getElementById("tasksContainer")
-  const tasksCountTextElement = document.getElementById("tasksCount")
+  const tasksContainer = document.getElementById("tasksContainer")
+  const tasksCount = document.getElementById("tasksCount")
 
-  if (!tasksContainerElement) return
+  if (!tasksContainer) return
 
-  tasksContainerElement.innerHTML = ""
-  if (tasksCountTextElement) tasksCountTextElement.textContent = "0 tareas"
+  tasksContainer.innerHTML = ""
+  if (tasksCount) tasksCount.textContent = "0 tareas"
 
   try {
-    const authenticatedUser = getUser()
-    const authenticatedUserId = authenticatedUser?.userId ?? authenticatedUser?.id
+    const user = getUser()
+    const userId = user?.userId ?? user?.id
 
-    if (!authenticatedUserId) throw new Error("No se pudo identificar al usuario")
+    if (!userId) {
+      throw new Error("No se pudo identificar al usuario")
+    }
 
-    const [tasksApiResponse, projectsApiResponse] = await Promise.all([api.users.getTasks(authenticatedUserId), api.projects.getByUser(authenticatedUserId)])
+    const [tasksResult, projectsResult] = await Promise.allSettled([api.users.getTasks(userId), api.projects.getByUser(userId)])
 
-    cachedTasksList = Array.isArray(tasksApiResponse) ? tasksApiResponse : []
-    const userProjectsList = Array.isArray(projectsApiResponse) ? projectsApiResponse : []
+    cachedTasksList = tasksResult.status === "fulfilled" && Array.isArray(tasksResult.value) ? tasksResult.value : []
 
-    // Construye el mapa id→nombre para poder mostrar el nombre del proyecto en cada tarjeta de tarea
-    projectIdToNameMap = Object.fromEntries(userProjectsList.filter((projectItem) => projectItem?.id != null).map((projectItem) => [projectItem.id, projectItem.name ?? "Proyecto sin nombre"]))
+    projectsList = projectsResult.status === "fulfilled" && Array.isArray(projectsResult.value) ? projectsResult.value : []
 
-    populateProjectFilterOptions(userProjectsList)
+    projectIdToNameMap = Object.fromEntries(projectsList.filter((project) => project?.id != null).map((project) => [String(project.id), project.name ?? "Proyecto sin nombre"]))
 
-    // Restablece los filtros principales al cargar datos nuevos desde la API
-    taskFilters.category = "all"
-    taskFilters.state = "all"
-    const stateFilterSelectElement = document.getElementById("filterState")
-    if (stateFilterSelectElement) stateFilterSelectElement.value = "all"
-
+    populateProjectFilterOptions(projectsList)
     updateActiveSidebarCategoryButton()
     updateTasksSectionTitle()
     applyTaskFilters()
   } catch (error) {
     console.error("Error cargando tareas:", error)
-    tasksContainerElement.innerHTML = `
-      <p class="errorState">Error al cargar las tareas: ${error?.message ?? "Error desconocido"}</p>
-    `
+    tasksContainer.innerHTML = `<p class="errorState">Error al cargar las tareas: ${error?.message ?? "Error desconocido"}</p>`
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FILTRADO Y CATEGORÍAS
-// ─────────────────────────────────────────────────────────────────────────────
+function populateProjectFilterOptions(projects) {
+  const filterSelect = document.getElementById("filterProject")
+  if (!filterSelect) return
 
-/**
- * Aplica la categoría seleccionada desde la barra lateral.
- * Traduce la categoría a los filtros correspondientes y sincroniza los selectores del DOM.
- * @param {string} selectedSidebarCategory - Valor del atributo data-category del botón pulsado.
- */
-function applySidebarCategory(selectedSidebarCategory) {
-  // Reinicia los filtros dependientes antes de aplicar la nueva categoría elegida en la barra lateral
-  taskFilters.category = selectedSidebarCategory
+  filterSelect.innerHTML = `<option value="all">Proyecto</option>`
+
+  projects.forEach((project) => {
+    if (project?.id == null) return
+
+    const option = document.createElement("option")
+    option.value = String(project.id)
+    option.textContent = project.name ?? "Proyecto sin nombre"
+    filterSelect.appendChild(option)
+  })
+}
+
+function applySidebarCategory(selectedCategory) {
+  taskFilters.category = selectedCategory
   taskFilters.state = "all"
   taskFilters.priority = "all"
-  taskFilters.project = "all"
 
-  if (["in_progress", "completed", "expired"].includes(selectedSidebarCategory)) {
-    taskFilters.state = selectedSidebarCategory
-  } else if (["high", "mid", "low"].includes(selectedSidebarCategory)) {
-    taskFilters.priority = selectedSidebarCategory
-  } else if (selectedSidebarCategory.startsWith("project:")) {
-    taskFilters.project = selectedSidebarCategory.replace("project:", "")
-  }
-
-  // Refleja los nuevos valores de filtro en los selectores visibles del formulario
-  const setSelectValueById = (selectElementId, selectedValue) => {
-    const selectElement = document.getElementById(selectElementId)
-    if (selectElement) selectElement.value = selectedValue
+  if (["in_progress", "completed", "expired"].includes(selectedCategory)) {
+    taskFilters.state = selectedCategory
+  } else if (["high", "mid", "low"].includes(selectedCategory)) {
+    taskFilters.priority = selectedCategory
   }
 
   setSelectValueById("filterState", taskFilters.state)
   setSelectValueById("filterPriority", taskFilters.priority)
-  setSelectValueById("filterProject", taskFilters.project)
 
   updateActiveSidebarCategoryButton()
   updateTasksSectionTitle()
   applyTaskFilters()
 }
 
-/**
- * Marca como activo el botón de la barra lateral cuya categoría coincide con el filtro actual.
- */
+function setSelectValueById(selectId, value) {
+  const select = document.getElementById(selectId)
+  if (select) select.value = value
+}
+
 function updateActiveSidebarCategoryButton() {
-  document.querySelectorAll(".tasksSidebarLink").forEach((sidebarCategoryButton) => {
-    sidebarCategoryButton.classList.toggle("tasksSidebarLinkActive", sidebarCategoryButton.dataset.category === taskFilters.category)
+  document.querySelectorAll(".tasksSidebarLink").forEach((button) => {
+    button.classList.toggle("tasksSidebarLinkActive", button.dataset.category === taskFilters.category)
   })
 }
 
-/**
- * Actualiza el título visible de la sección de tareas según la categoría activa.
- */
 function updateTasksSectionTitle() {
-  const tasksSectionTitleElement = document.getElementById("tasksSectionTitle")
-  if (tasksSectionTitleElement) tasksSectionTitleElement.textContent = CATEGORY_SECTION_TITLES[taskFilters.category] ?? "Tareas"
+  const title = document.getElementById("tasksSectionTitle")
+  if (title) title.textContent = CATEGORY_SECTION_TITLES[taskFilters.category] ?? "Tareas"
 }
 
-/**
- * Filtra, ordena y renderiza las tareas del caché según el estado actual de `taskFilters`.
- * También actualiza las estadísticas mostradas en la cabecera.
- */
 function applyTaskFilters() {
-  let filteredTasksList = [...cachedTasksList]
+  let filteredTasks = [...cachedTasksList]
 
   if (taskFilters.search) {
-    filteredTasksList = filteredTasksList.filter((taskItem) =>
-      String(taskItem?.title ?? "")
-        .toLowerCase()
-        .trim()
-        .includes(taskFilters.search),
-    )
+    filteredTasks = filteredTasks.filter((task) => {
+      const title = String(task?.title ?? "").toLowerCase()
+      const description = String(task?.description ?? "").toLowerCase()
+      return title.includes(taskFilters.search) || description.includes(taskFilters.search)
+    })
   }
 
   if (taskFilters.category === "with_deadline") {
-    filteredTasksList = filteredTasksList.filter((taskItem) => !!taskItem?.dateDeadline)
+    filteredTasks = filteredTasks.filter((task) => !!task?.dateDeadline)
   } else if (taskFilters.category === "without_deadline") {
-    filteredTasksList = filteredTasksList.filter((taskItem) => !taskItem?.dateDeadline)
+    filteredTasks = filteredTasks.filter((task) => !task?.dateDeadline)
   }
 
   if (taskFilters.state !== "all") {
-    filteredTasksList = filteredTasksList.filter((taskItem) => normalizeTaskState(taskItem?.state) === taskFilters.state)
+    filteredTasks = filteredTasks.filter((task) => normalizeTaskState(task?.state, task?.completed, task?.dateDeadline) === taskFilters.state)
   }
 
   if (taskFilters.priority !== "all") {
-    filteredTasksList = filteredTasksList.filter((taskItem) => normalizeTaskPriority(taskItem?.priority) === taskFilters.priority)
+    filteredTasks = filteredTasks.filter((task) => normalizeTaskPriority(task?.priority) === taskFilters.priority)
   }
 
   if (taskFilters.project !== "all") {
-    filteredTasksList = filteredTasksList.filter((taskItem) => String(taskItem?.projectId ?? "") === taskFilters.project)
+    filteredTasks = filteredTasks.filter((task) => String(getTaskProjectId(task) ?? "") === String(taskFilters.project))
   }
 
-  filteredTasksList.sort((firstTask, secondTask) => compareTasksForSort(firstTask, secondTask, taskFilters.sort))
+  filteredTasks.sort((a, b) => compareTasksForSort(a, b, taskFilters.sort))
 
-  renderTasksStatistics(filteredTasksList)
-  renderFilteredTasksList(filteredTasksList)
+  renderTasksStatistics(filteredTasks)
+  renderFilteredTasksList(filteredTasks)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RENDERIZADO
-// ─────────────────────────────────────────────────────────────────────────────
+function renderTasksStatistics(tasks) {
+  const stats = {
+    statInProgress: tasks.filter((task) => normalizeTaskState(task?.state, task?.completed, task?.dateDeadline) === "in_progress").length,
+    statExpired: tasks.filter((task) => normalizeTaskState(task?.state, task?.completed, task?.dateDeadline) === "expired").length,
+    statCompleted: tasks.filter((task) => normalizeTaskState(task?.state, task?.completed, task?.dateDeadline) === "completed").length,
+    statHigh: tasks.filter((task) => normalizeTaskPriority(task?.priority) === "high").length,
+  }
 
-/**
- * Renderiza la lista de tarjetas de tareas en el contenedor principal.
- * Si no hay tareas, muestra el estado vacío.
- * @param {object[]} filteredAndSortedTasksList - Lista de tareas ya filtradas y ordenadas.
- */
-function renderFilteredTasksList(filteredAndSortedTasksList) {
-  const tasksContainerElement = document.getElementById("tasksContainer")
-  const tasksCountElement = document.getElementById("tasksCount")
+  Object.entries(stats).forEach(([id, value]) => {
+    const element = document.getElementById(id)
+    if (element) element.textContent = String(value)
+  })
+}
 
-  if (!tasksContainerElement) return
+function renderFilteredTasksList(tasks) {
+  const tasksContainer = document.getElementById("tasksContainer")
+  const tasksCount = document.getElementById("tasksCount")
 
-  tasksContainerElement.innerHTML = ""
+  if (!tasksContainer) return
 
-  if (!filteredAndSortedTasksList.length) {
-    if (tasksCountElement) tasksCountElement.textContent = "0 tareas"
-    tasksContainerElement.innerHTML = `
+  tasksContainer.innerHTML = ""
+
+  if (tasksCount) {
+    tasksCount.textContent = `${tasks.length} ${tasks.length === 1 ? "tarea" : "tareas"}`
+  }
+
+  if (!tasks.length) {
+    tasksContainer.innerHTML = `
       <div class="noTask">
         <div class="noTaskIcon">✓</div>
-        <p class="noTaskSubtitle">Todo completado</p>
-        <h2 class="noTaskTitle">No tienes tareas</h2>
-        <p class="noTaskText">
-          Todo está al día. Crea una nueva tarea para empezar a organizar tu trabajo
-          y verla aquí ordenada por fecha de finalización.
-        </p>
+        <p class="noTaskSubtitle">Sin tareas</p>
+        <h2 class="noTaskTitle">No hay tareas para mostrar</h2>
+        <p class="noTaskText">Cambia los filtros o revisa otro proyecto para ver más resultados.</p>
         <div class="noTaskGoTasks">
-          <a href="tasks.html" class="noTaskGoTask">Recargar</a>
-          <a href="#" class="noTaskCreateTask">Crear nueva tarea</a>
+          <a href="projects.html" class="noTaskGoTask">Crear tarea</a>
         </div>
       </div>
     `
     return
   }
 
-  if (tasksCountElement) {
-    tasksCountElement.textContent = `${filteredAndSortedTasksList.length} ${filteredAndSortedTasksList.length === 1 ? "tarea" : "tareas"}`
-  }
-
-  filteredAndSortedTasksList.forEach((taskItem) => tasksContainerElement.appendChild(buildTaskCardElement(taskItem)))
-}
-
-/**
- * Actualiza los contadores de estadísticas (en progreso, vencidas, completadas, alta prioridad)
- * basándose en la lista de tareas actualmente filtrada.
- * @param {object[]} filteredTasksList - Lista de tareas filtradas actualmente visible en pantalla.
- */
-function renderTasksStatistics(filteredTasksList) {
-  const statisticsByElementId = {
-    statInProgress: filteredTasksList.filter((taskItem) => normalizeTaskState(taskItem?.state) === "in_progress").length,
-    statExpired: filteredTasksList.filter((taskItem) => normalizeTaskState(taskItem?.state) === "expired").length,
-    statWithDeadline: filteredTasksList.filter((taskItem) => !!taskItem?.completed).length,
-    statHigh: filteredTasksList.filter((taskItem) => normalizeTaskPriority(taskItem?.priority) === "high").length,
-  }
-
-  for (const [statisticElementId, totalStatisticValue] of Object.entries(statisticsByElementId)) {
-    const statisticElement = document.getElementById(statisticElementId)
-    if (statisticElement) statisticElement.textContent = totalStatisticValue
-  }
-}
-
-/**
- * Rellena el selector de proyectos con las opciones disponibles para el usuario.
- * @param {object[]} availableProjectsList - Lista de proyectos disponibles del usuario.
- */
-function populateProjectFilterOptions(availableProjectsList) {
-  const projectFilterSelectElement = document.getElementById("filterProject")
-  if (!projectFilterSelectElement) return
-
-  projectFilterSelectElement.innerHTML = `<option value="all">Proyecto</option>`
-  availableProjectsList.forEach((projectItem) => {
-    const projectOptionElement = document.createElement("option")
-    projectOptionElement.value = String(projectItem.id)
-    projectOptionElement.textContent = projectItem.name ?? "Proyecto sin nombre"
-    projectFilterSelectElement.appendChild(projectOptionElement)
+  tasks.forEach((task) => {
+    tasksContainer.appendChild(buildTaskCardElement(task))
   })
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTRUCCIÓN DE TARJETAS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Construye el elemento DOM de una tarjeta de tarea.
- * Incluye título, proyecto, descripción, estado, fecha límite y acciones.
- * @param {object} taskData - Objeto de tarea recibido desde la API.
- * @returns {HTMLElement} Elemento `<article>` listo para insertar en el DOM.
- */
-function buildTaskCardElement(taskData) {
-  // Resuelve el nombre del proyecto usando primero la propia tarea y, si no existe, el mapa de proyectos cargado en memoria
-  let resolvedProjectName = taskData?.projectName ?? taskData?.project?.name
-
-  if (!resolvedProjectName && taskData?.projectId != null) {
-    resolvedProjectName = projectIdToNameMap[taskData.projectId]
+function buildTaskCardElement(task) {
+  if (String(editingTaskId) === String(task?.id)) {
+    return buildEditableTaskCardElement(task)
   }
 
-  resolvedProjectName ??= "Sin proyecto"
+  const article = document.createElement("article")
+  const normalizedState = normalizeTaskState(task?.state, task?.completed, task?.dateDeadline)
+  const projectName = resolveTaskProjectName(task)
+  const formattedDeadline = formatTaskDeadline(task?.dateDeadline)
+  const relativeDeadline = getRelativeDeadlineLabel(task?.dateDeadline, normalizedState)
 
-  // Convierte la fecha límite en un texto legible para mostrarlo en la tarjeta
-  const formattedDeadlineText = (() => {
-    if (!taskData?.dateDeadline) return "Sin fecha"
-    const deadlineDateObject = new Date(taskData.dateDeadline)
-    if (Number.isNaN(deadlineDateObject.getTime())) return String(taskData.dateDeadline)
-    return deadlineDateObject
-      .toLocaleString("es-ES", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .replaceAll(",", " ·")
-  })()
+  article.className = `taskCard ${getTaskCardStateClass(normalizedState)}`
 
-  // Calcula la etiqueta de tiempo relativa al vencimiento, por ejemplo "Tiempo restante", "Vence en menos de 1h" o "Vencida hace..."
-  const relativeDeadlineLabel = (() => {
-    const normalizedTaskState = normalizeTaskState(taskData?.state)
-    if (!taskData?.dateDeadline) return "Sin fecha límite"
-    const deadlineDateObject = new Date(taskData.dateDeadline)
-    if (Number.isNaN(deadlineDateObject.getTime())) return "Fecha inválida"
-
-    const millisecondsUntilDeadline = deadlineDateObject.getTime() - Date.now()
-    const absoluteMillisecondsDifference = Math.abs(millisecondsUntilDeadline)
-    const remainingDays = Math.floor(absoluteMillisecondsDifference / (1000 * 60 * 60 * 24))
-    const remainingHours = Math.floor((absoluteMillisecondsDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-
-    if (normalizedTaskState === "completed") return "Completada"
-    if (normalizedTaskState === "expired") {
-      return remainingDays === 0 && remainingHours === 0 ? "Vencida hace menos de 1h" : `Vencida hace ${remainingDays}d ${remainingHours}h`
-    }
-    if (remainingDays === 0 && remainingHours === 0) {
-      return millisecondsUntilDeadline < 0 ? "Vencida hace menos de 1h" : "Vence en menos de 1h"
-    }
-    return `Tiempo restante: ${remainingDays}d ${remainingHours}h`
-  })()
-
-  const normalizedTaskState = normalizeTaskState(taskData?.state)
-
-  // Relaciona cada estado de tarea con su clase CSS correspondiente para la pastilla visual de estado
-  const stateBadgeCssClass =
-    {
-      in_progress: "stateInProgress",
-      completed: "stateCompleted",
-      expired: "stateExpired",
-    }[normalizedTaskState] ?? ""
-
-  // Relaciona cada estado de tarea con la clase CSS del indicador visual de tiempo
-  const timeStatusCssClass =
-    {
-      completed: "timeStatusCompleted",
-      expired: "timeStatusExpired",
-      in_progress: "timeStatusInProgress",
-    }[normalizedTaskState] ?? "timeStatusNormal"
-
-  // Relaciona cada estado interno de tarea con el texto visible que se mostrará al usuario
-  const stateLabelText =
-    {
-      completed: "Completada",
-      in_progress: "En progreso",
-      expired: "Vencida",
-    }[normalizedTaskState] ?? "Sin estado"
-
-  const taskCardElement = document.createElement("article")
-  taskCardElement.classList.add("taskCard")
-  if (normalizedTaskState === "in_progress") taskCardElement.classList.add("taskCardInProgress")
-  if (normalizedTaskState === "completed") taskCardElement.classList.add("taskCardCompleted")
-  if (normalizedTaskState === "expired") taskCardElement.classList.add("taskCardExpired")
-
-  taskCardElement.innerHTML = `
+  article.innerHTML = `
     <div class="taskCardTop">
       <div>
-        <h3 class="taskCardTitle">${taskData?.title ?? "Sin título"}</h3>
-        <p class="taskCardProject">Proyecto: ${resolvedProjectName}</p>
+        <h3 class="taskCardTitle">${task?.title ?? "Sin título"}</h3>
+        <p class="taskCardProject">Proyecto: ${projectName}</p>
       </div>
     </div>
-    <p class="taskCardDescription">${taskData?.description ?? "Sin descripción"}</p>
+
+    <p class="taskCardDescription">${task?.description?.trim() || "Sin descripción"}</p>
+
     <div class="taskCardBottom">
       <div class="taskCardMeta">
-        <span class="taskCardState ${stateBadgeCssClass}">${stateLabelText}</span>
-        <span class="taskCardDeadline">${formattedDeadlineText}</span>
-        <span class="taskCardTimeStatus ${timeStatusCssClass}">${relativeDeadlineLabel}</span>
+        <span class="taskCardState ${getTaskStateBadgeClass(normalizedState)}">${getTaskStateLabel(normalizedState)}</span>
+        <span class="taskCardDeadline">${formattedDeadline}</span>
+        <span class="taskCardTimeStatus ${getTaskTimeStatusClass(normalizedState)}">${relativeDeadline}</span>
       </div>
+
       <div class="taskCardActions">
-        <button data-id="${taskData?.id ?? ""}" class="editTask">Editar</button>
-        ${normalizedTaskState === "completed" ? "" : `<button data-id="${taskData?.id ?? ""}" class="completeTask taskActionComplete">Completar</button>`}      </div>
+        <button type="button" class="editTask" data-id="${task?.id ?? ""}">Editar</button>
+        <button type="button" class="toggleTaskState taskActionComplete" data-id="${task?.id ?? ""}">
+          ${normalizedState === "completed" ? "Descompletar" : "Completar"}
+        </button>
+        <button type="button" class="deleteTask taskActionDelete" data-id="${task?.id ?? ""}">Eliminar</button>
+      </div>
     </div>
   `
 
-  return taskCardElement
+  return article
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NORMALIZACIÓN Y ORDENACIÓN
-// ─────────────────────────────────────────────────────────────────────────────
+function buildEditableTaskCardElement(task) {
+  const article = document.createElement("article")
+  article.className = `taskCard taskCardEditing ${getTaskCardStateClass(normalizeTaskState(task?.state, task?.completed, task?.dateDeadline))}`
 
-/**
- * Normaliza el valor de prioridad de una tarea a uno de los valores canónicos.
- * @param {string} rawTaskPriorityValue - Valor original de prioridad recibido en la tarea.
- * @returns {"high" | "mid" | "low" | "unknown"}
- */
-function normalizeTaskPriority(rawTaskPriorityValue) {
-  const normalizedPriorityValue = String(rawTaskPriorityValue ?? "").toLowerCase()
-  if (normalizedPriorityValue === "high") return "high"
-  if (normalizedPriorityValue === "mid" || normalizedPriorityValue === "medium") return "mid"
-  if (normalizedPriorityValue === "low") return "low"
+  article.innerHTML = `
+    <div class="taskInlineForm">
+      <div class="taskInlineGrid">
+        <div class="taskInlineFieldWrap">
+          <label class="taskInlineLabel" for="edit-title-${task.id}">Título</label>
+          <input
+            id="edit-title-${task.id}"
+            class="taskInlineField"
+            type="text"
+            value="${task?.title ?? ""}"
+            maxlength="255"
+          />
+        </div>
+
+        <div class="taskInlineFieldWrap">
+          <label class="taskInlineLabel" for="edit-description-${task.id}">Descripción</label>
+          <textarea
+            id="edit-description-${task.id}"
+            class="taskInlineField"
+            rows="4"
+          >${task?.description ?? ""}</textarea>
+        </div>
+
+        <div class="taskInlineFieldWrap">
+          <label class="taskInlineLabel" for="edit-deadline-${task.id}">Fecha límite</label>
+          <input
+            id="edit-deadline-${task.id}"
+            class="taskInlineField"
+            type="datetime-local"
+            value="${formatForDateTimeLocal(task?.dateDeadline)}"
+          />
+        </div>
+      </div>
+
+      <div class="taskInlineActions">
+        <button type="button" class="saveEditTask taskInlineSave" data-id="${task?.id ?? ""}">Guardar</button>
+        <button type="button" class="cancelEditTask taskInlineCancel">Cancelar</button>
+      </div>
+    </div>
+  `
+
+  return article
+}
+
+function startInlineEdit(taskId) {
+  editingTaskId = taskId
+  applyTaskFilters()
+}
+
+function cancelInlineEdit() {
+  editingTaskId = null
+  applyTaskFilters()
+}
+
+async function saveInlineEdit(taskId) {
+  const task = findTaskById(taskId)
+  if (!task) return
+
+  const projectId = getTaskProjectId(task)
+  if (!projectId) {
+    alert("No se encontró el proyecto de la tarea")
+    return
+  }
+
+  const title = String(document.getElementById(`edit-title-${taskId}`)?.value ?? "").trim()
+  const description = String(document.getElementById(`edit-description-${taskId}`)?.value ?? "").trim()
+  const deadlineRaw = String(document.getElementById(`edit-deadline-${taskId}`)?.value ?? "").trim()
+
+  if (!title) {
+    alert("El título es obligatorio")
+    return
+  }
+
+  try {
+    await api.tasks.update(projectId, taskId, {
+      title,
+      description,
+      dateDeadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
+      completed: Boolean(task.completed),
+    })
+
+    editingTaskId = null
+    await loadTasksFromApi()
+  } catch (error) {
+    console.error("Error editando tarea:", error)
+    alert(error?.message ?? "No se pudo editar la tarea")
+  }
+}
+
+async function toggleTaskCompletion(taskId) {
+  const task = findTaskById(taskId)
+  if (!task) return
+
+  const projectId = getTaskProjectId(task)
+  if (!projectId) {
+    alert("No se encontró el proyecto de la tarea")
+    return
+  }
+
+  const isCompleted = normalizeTaskState(task?.state, task?.completed, task?.dateDeadline) === "completed"
+
+  try {
+    await api.tasks.update(projectId, taskId, {
+      title: task?.title ?? "",
+      description: task?.description ?? "",
+      dateDeadline: task?.dateDeadline ?? null,
+      completed: !isCompleted,
+    })
+
+    cachedTasksList = cachedTasksList.map((taskItem) => {
+      if (String(taskItem?.id) !== String(taskId)) return taskItem
+
+      return {
+        ...taskItem,
+        completed: !isCompleted,
+        state: isCompleted ? "in_progress" : "completed",
+      }
+    })
+
+    if (String(editingTaskId) === String(taskId)) {
+      editingTaskId = null
+    }
+
+    applyTaskFilters()
+  } catch (error) {
+    console.error("Error cambiando estado de tarea:", error)
+    alert(error?.message ?? "No se pudo actualizar el estado de la tarea")
+  }
+}
+
+async function deleteTask(taskId) {
+  const task = findTaskById(taskId)
+  if (!task) return
+
+  const confirmed = globalThis.confirm(`¿Eliminar la tarea "${task.title ?? "Sin título"}"?`)
+  if (!confirmed) return
+
+  const projectId = getTaskProjectId(task)
+  if (!projectId) {
+    alert("No se encontró el proyecto de la tarea")
+    return
+  }
+
+  try {
+    await api.tasks.delete(projectId, taskId)
+
+    cachedTasksList = cachedTasksList.filter((taskItem) => String(taskItem?.id) !== String(taskId))
+
+    if (String(editingTaskId) === String(taskId)) {
+      editingTaskId = null
+    }
+
+    applyTaskFilters()
+  } catch (error) {
+    console.error("Error eliminando tarea:", error)
+    alert(error?.message ?? "No se pudo eliminar la tarea")
+  }
+}
+
+function findTaskById(taskId) {
+  return cachedTasksList.find((task) => String(task?.id) === String(taskId)) ?? null
+}
+
+function resolveTaskProjectName(task) {
+  if (task?.project?.name) return task.project.name
+  if (task?.projectName) return task.projectName
+
+  const projectId = getTaskProjectId(task)
+  if (projectId != null && projectIdToNameMap[String(projectId)]) {
+    return projectIdToNameMap[String(projectId)]
+  }
+
+  return "Sin proyecto"
+}
+
+function getTaskProjectId(task) {
+  return task?.projectId ?? task?.project?.id ?? null
+}
+
+function normalizeTaskPriority(priority) {
+  const normalized = String(priority ?? "").toLowerCase()
+
+  if (normalized === "high") return "high"
+  if (normalized === "mid" || normalized === "medium") return "mid"
+  if (normalized === "low") return "low"
+
   return "unknown"
 }
 
-/**
- * Normaliza el estado de una tarea al conjunto de valores canónicos usados en la UI.
- * @param {string} rawTaskStateValue - Valor original de estado recibido en la tarea.
- * @returns {"completed" | "in_progress" | "expired" | string}
- */
-function normalizeTaskState(rawTaskStateValue) {
-  const normalizedStateValue = String(rawTaskStateValue ?? "").toLowerCase()
-  if (normalizedStateValue === "completed") return "completed"
-  if (normalizedStateValue === "in_progress") return "in_progress"
-  if (normalizedStateValue === "expired") return "expired"
-  return normalizedStateValue
+function normalizeTaskState(state, completed, deadline) {
+  if (completed === true) return "completed"
+
+  const normalized = String(state ?? "").toLowerCase()
+
+  if (normalized === "completed") return "completed"
+  if (normalized === "expired") return "expired"
+  if (normalized === "in_progress" || normalized === "pending" || normalized === "todo") return "in_progress"
+
+  if (deadline) {
+    const deadlineTime = new Date(deadline).getTime()
+    if (!Number.isNaN(deadlineTime) && deadlineTime < Date.now()) {
+      return "expired"
+    }
+  }
+
+  return "in_progress"
 }
 
-/**
- * Compara dos tareas para ordenarlas según el criterio activo.
- * Las tareas sin el campo de ordenación se mandan al final (MAX_SAFE_INTEGER).
- * @param {object} firstTaskToCompare - Primera tarea a comparar.
- * @param {object} secondTaskToCompare - Segunda tarea a comparar.
- * @param {"deadline" | "priority" | "title" | "created"} activeSortMode - Criterio de ordenación actualmente seleccionado.
- * @returns {number}
- */
-function compareTasksForSort(firstTaskToCompare, secondTaskToCompare, activeSortMode) {
-  const getPrioritySortWeight = (priorityValue) => ({ high: 0, mid: 1, low: 2 })[normalizeTaskPriority(priorityValue)] ?? 3
-  const convertDateToTimestamp = (dateValue) => (dateValue ? new Date(dateValue).getTime() : Number.MAX_SAFE_INTEGER)
+function compareTasksForSort(firstTask, secondTask, sortMode) {
+  const priorityWeight = (value) => {
+    return (
+      {
+        high: 0,
+        mid: 1,
+        low: 2,
+      }[normalizeTaskPriority(value)] ?? 3
+    )
+  }
 
-  if (activeSortMode === "priority") return getPrioritySortWeight(firstTaskToCompare?.priority) - getPrioritySortWeight(secondTaskToCompare?.priority)
-  if (activeSortMode === "title") {
-    return String(firstTaskToCompare?.title ?? "")
+  const toTimestamp = (value) => {
+    if (!value) return Number.MAX_SAFE_INTEGER
+    const timestamp = new Date(value).getTime()
+    return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp
+  }
+
+  if (sortMode === "priority") {
+    return priorityWeight(firstTask?.priority) - priorityWeight(secondTask?.priority)
+  }
+
+  if (sortMode === "title") {
+    return String(firstTask?.title ?? "")
       .toLowerCase()
       .trim()
       .localeCompare(
-        String(secondTaskToCompare?.title ?? "")
+        String(secondTask?.title ?? "")
           .toLowerCase()
           .trim(),
         "es",
       )
   }
-  if (activeSortMode === "created") return convertDateToTimestamp(firstTaskToCompare?.createdAt) - convertDateToTimestamp(secondTaskToCompare?.createdAt)
-  return convertDateToTimestamp(firstTaskToCompare?.dateDeadline) - convertDateToTimestamp(secondTaskToCompare?.dateDeadline)
+
+  if (sortMode === "created") {
+    return toTimestamp(firstTask?.createdAt ?? firstTask?.dateCreation) - toTimestamp(secondTask?.createdAt ?? secondTask?.dateCreation)
+  }
+
+  return toTimestamp(firstTask?.dateDeadline) - toTimestamp(secondTask?.dateDeadline)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACCIONES
-// ─────────────────────────────────────────────────────────────────────────────
+function getTaskCardStateClass(normalizedState) {
+  return (
+    {
+      in_progress: "taskCardInProgress",
+      completed: "taskCardCompleted",
+      expired: "taskCardExpired",
+    }[normalizedState] ?? "taskCardInProgress"
+  )
+}
 
-/**
- * Marca una tarea como completada vía API tras confirmación del usuario.
- * Deshabilita el botón mientras espera y lo restaura si ocurre un error.
- * @param {string} taskId - Identificador de la tarea que se quiere completar.
- * @param {HTMLButtonElement} completeTaskButtonElement - Botón que disparó la acción de completar.
- */
-async function markTaskAsComplete(taskId, completeTaskButtonElement) {
-  if (!taskId) return
-  if (!globalThis.confirm("¿Marcar esta tarea como completada?")) return
+function getTaskStateBadgeClass(normalizedState) {
+  return (
+    {
+      in_progress: "stateInProgress",
+      completed: "stateCompleted",
+      expired: "stateExpired",
+    }[normalizedState] ?? "stateInProgress"
+  )
+}
 
-  const originalButtonLabel = completeTaskButtonElement?.textContent
+function getTaskTimeStatusClass(normalizedState) {
+  return (
+    {
+      in_progress: "timeStatusInProgress",
+      completed: "timeStatusCompleted",
+      expired: "timeStatusExpired",
+    }[normalizedState] ?? "timeStatusInProgress"
+  )
+}
 
-  try {
-    if (completeTaskButtonElement) {
-      completeTaskButtonElement.disabled = true
-      completeTaskButtonElement.textContent = "Completando..."
-    }
+function getTaskStateLabel(normalizedState) {
+  return (
+    {
+      in_progress: "En progreso",
+      completed: "Completada",
+      expired: "Vencida",
+    }[normalizedState] ?? "En progreso"
+  )
+}
 
-    if (!api?.tasks?.update) throw new Error("No existe api.tasks.update(taskId, data)")
-    await api.tasks.update(taskId, { state: "COMPLETED", completed: true })
+function formatTaskDeadline(dateDeadline) {
+  if (!dateDeadline) return "Sin fecha"
 
-    await loadTasksFromApi()
-  } catch (error) {
-    console.error("Error completando tarea:", error)
-    alert(`No se pudo completar la tarea: ${error?.message ?? "Error desconocido"}`)
-    if (completeTaskButtonElement) {
-      completeTaskButtonElement.disabled = false
-      completeTaskButtonElement.textContent = originalButtonLabel ?? "Completar"
-    }
+  const date = new Date(dateDeadline)
+  if (Number.isNaN(date.getTime())) return String(dateDeadline)
+
+  return date
+    .toLocaleString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replaceAll(",", " ·")
+}
+
+function getRelativeDeadlineLabel(dateDeadline, state) {
+  if (!dateDeadline) return "Sin fecha límite"
+
+  const date = new Date(dateDeadline)
+  if (Number.isNaN(date.getTime())) return "Fecha inválida"
+
+  if (state === "completed") return "Completada"
+
+  const diff = date.getTime() - Date.now()
+  const absDiff = Math.abs(diff)
+
+  const days = Math.floor(absDiff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+
+  if (diff < 0) {
+    if (days === 0 && hours === 0) return "Vencida hace menos de 1h"
+    return `Vencida hace ${days}d ${hours}h`
   }
+
+  if (days === 0 && hours === 0) return "Vence en menos de 1h"
+  return `Tiempo restante: ${days}d ${hours}h`
+}
+
+function formatForDateTimeLocal(dateValue) {
+  if (!dateValue) return ""
+
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return ""
+
+  const pad = (value) => String(value).padStart(2, "0")
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }

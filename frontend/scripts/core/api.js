@@ -297,20 +297,18 @@ export const tasksApi = {
     return get(`/projects/${projectId}/tasks/${taskId}`)
   },
 
-  create(projectId, { title, description, priority, dateDeadline }) {
+  create(projectId, { title, description, dateDeadline }) {
     return post(`/projects/${projectId}/tasks`, {
       title,
       description,
-      priority,
       dateDeadline,
     })
   },
 
-  update(projectId, taskId, { title, description, priority, dateDeadline, completed }) {
+  update(projectId, taskId, { title, description, dateDeadline, completed }) {
     return patch(`/projects/${projectId}/tasks/${taskId}`, {
       title,
       description,
-      priority,
       dateDeadline,
       completed,
     })
