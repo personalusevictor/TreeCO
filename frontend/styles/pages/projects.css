@@ -5,8 +5,8 @@
 
 /* ── Layout ──────────────────────────────────── */
 .proj-page {
-  flex: 1;
-  min-height: 0;
+  width: 100%;
+  /* height & padding-top come from base.css */
   display: grid;
   grid-template-columns: 248px 1fr;
   overflow: hidden;

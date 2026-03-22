@@ -19,15 +19,14 @@
 			═══════════════════════════════════════════════ */
 
 .cal-page {
-  /* Ocupa TODO el ancho y TODO el alto restante */
-  flex: 1;
-  min-height: 0;
   width: 100%;
+  /* height & padding-top come from base.css */
   display: grid;
-  /* Sidebar fija, calendario se lleva todo lo demás */
   grid-template-columns: 260px 1fr;
   gap: 20px;
-  padding: 16px 24px 16px 20px;
+  padding-right: 24px;
+  padding-bottom: 16px;
+  padding-left: 20px;
   overflow: hidden;
 }
 
@@ -1514,8 +1513,8 @@
   .cal-page {
     display: flex;
     flex-direction: column;
-    flex: unset;
-    min-height: 0;
+    height: auto;
+    min-height: 100vh;
     padding: 10px 14px 24px;
     gap: 10px;
     overflow: visible;
@@ -1598,7 +1597,7 @@
   .cal-page {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    height: 100vh;
     padding: 8px 10px 0;
     gap: 7px;
     overflow: hidden;
