@@ -44,6 +44,7 @@
 				<div id="appHeader">
 					<div class="h-island">
 						<div class="h-shimmer-clip" aria-hidden="true"><div class="h-shimmer"></div></div>
+						<div class="h-island-content">
 	
 						<a class="h-logo" href="./dashboard.html" aria-label="TreeCO">
 							<img src="./assets/img/favicon/TreeCO.svg" alt="" width="20" height="20" draggable="false"/>
@@ -128,6 +129,7 @@
 								<span></span><span></span><span></span>
 							</button>
 						</div>
+						</div><!-- /.h-island-content -->
 					</div>
 				</div>
 	
@@ -144,7 +146,14 @@
 			`
 	
 			this._header = this.querySelector("#appHeader")
-	
+
+			// Fire entry animation on first load
+			const _h = this._header
+			if (_h) {
+				_h.classList.add("h-showing")
+				setTimeout(() => _h.classList.remove("h-showing"), 900)
+			}
+
 			this._initSession()
 			this._setActive()
 			this._initHoverReveal()
@@ -186,35 +195,98 @@
 			const header = this._header
 			if (!header || "ontouchstart" in window) return
 	
-			const SHOW_Y        = 40
-			const HIDE_DELAY_MS = 200
+			// ╔══════════════════════════════════════════════════════╗
+			// ║  TUNING                                              ║
+			const SHOW_Y        = 50   // px from top to reveal
+			const HIDE_DELAY_MS = 300   // ms before hiding
+			// ╚══════════════════════════════════════════════════════╝
 	
-			let hidden = false, timer = null
+			// Hover hint — line + label pill
+			const hint = document.createElement("div")
+			hint.className = "h-hover-hint"
+			document.body.appendChild(hint)
+			this._hoverHint = hint
+
+			// Label pill below the line
+			const label = document.createElement("div")
+			label.className = "h-hover-label"
+			label.innerHTML = `
+				<span class="h-hover-label-dot"></span>
+				<span class="h-hover-label-text"><span>TreeCO</span> — menú</span>
+				<span class="h-hover-label-chevron">
+					<svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+						<path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</span>`
+			document.body.appendChild(label)
+			this._hoverLabel = label
+	
+			let hidden = false, timer = null, hintTimer = null
 	
 			const isOpen = () =>
 				this.querySelector("#hChip")?.getAttribute("aria-expanded") === "true" ||
 				this.querySelector("#hMobileNav")?.classList.contains("open") ||
 				!!document.querySelector(".h-profile-panel.open")
 	
+			let showAnimTimer = null
+	
+			// Trigger a one-shot pulse on the hint line
+			const pulseHint = (cls) => {
+				hint.classList.remove("h-hint-release", "h-hint-absorb")
+				void hint.offsetWidth // reflow to restart animation
+				hint.classList.add(cls)
+				setTimeout(() => hint.classList.remove(cls), 600)
+			}
+	
 			const show = () => {
 				clearTimeout(timer)
+				clearTimeout(hintTimer)
+				clearTimeout(showAnimTimer)
 				if (!hidden) return
 				hidden = false
-				header.classList.remove("h-hidden")
-				// Retrigger shimmer animation on every reveal
+	
+				// Hint line pulses outward as if releasing the header
+				pulseHint("h-hint-release")
+				hint.classList.remove("h-hint-visible")
+				label.classList.remove("h-hint-visible")
+				label.classList.add("h-hint-hiding")
+				setTimeout(() => label.classList.remove("h-hint-hiding"), 260)
+	
+				// Remove exit states, add entry animation
+				header.classList.remove("h-hidden", "h-hiding")
+				header.classList.add("h-showing")
+	
+				// Retrigger shimmer
 				const shimmer = this.querySelector(".h-shimmer")
 				if (shimmer) {
 					shimmer.style.animation = "none"
-					shimmer.offsetWidth // force reflow
+					shimmer.offsetWidth
 					shimmer.style.animation = ""
 				}
+	
+				showAnimTimer = setTimeout(() => header.classList.remove("h-showing"), 700)
 			}
+	
 			const scheduleHide = () => {
 				clearTimeout(timer)
 				timer = setTimeout(() => {
 					if (isOpen()) return
 					hidden = true
-					header.classList.add("h-hidden")
+	
+					header.classList.remove("h-showing")
+					header.classList.add("h-hiding")
+	
+					setTimeout(() => {
+						header.classList.remove("h-hiding")
+						header.classList.add("h-hidden")
+						// Hint line pulses inward as if absorbing the header
+						pulseHint("h-hint-absorb")
+						hintTimer = setTimeout(() => {
+						hint.classList.add("h-hint-visible")
+						label.classList.remove("h-hint-hiding")
+						label.classList.add("h-hint-visible")
+					}, 200)
+					}, 460) // match islandExit duration
 				}, HIDE_DELAY_MS)
 			}
 	
@@ -373,6 +445,8 @@
 		disconnectedCallback() {
 			this._profilePanel?.remove()
 			this._profileOverlay?.remove()
+			this._hoverHint?.remove()
+			this._hoverLabel?.remove()
 		}
 	}
 	
