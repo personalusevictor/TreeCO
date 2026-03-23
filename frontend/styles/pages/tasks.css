@@ -3,7 +3,10 @@
 /* ── Page ───────────────────────────── */
 .tasksPage {
   width: 100%;
-  padding: var(--space-8) var(--space-6);
+  /* padding-top viene de base.css — header siempre visible */
+  padding-right: var(--space-6);
+  padding-bottom: var(--space-10);
+  padding-left: var(--space-6);
   font-family: var(--font-sans);
   overflow: auto;
 }
