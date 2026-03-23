@@ -1,10 +1,24 @@
 @import url("root.css");
 
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 main {
+  flex: 1;
   display: flex;
   justify-content: center;
   font-family: var(--font-sans);
 }
+
+/* ---------------- TASKS ---------------- */
 
 .tasks {
   width: 920px;
@@ -18,6 +32,7 @@ main {
 }
 
 .task {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -239,7 +254,7 @@ main {
   border-color: rgba(61, 220, 132, 0.18);
 }
 
-/* ── Sin tareas ───────────────────────────── */
+/* ---------------- SIN TAREAS ---------------- */
 
 .noTask {
   min-height: 58vh;
@@ -254,7 +269,9 @@ main {
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-glass-border);
 
-  background: radial-gradient(circle at top, rgba(61, 220, 132, 0.12), transparent 35%), linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  background:
+    radial-gradient(circle at top, rgba(61, 220, 132, 0.12), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
 
   box-shadow: var(--shadow-glass), var(--shadow-inset);
 }
@@ -374,6 +391,52 @@ main {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* ---------------- FOOTER ---------------- */
+
+footer {
+  width: 100%;
+  margin-top: auto;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+    rgba(7, 14, 10, 0.72);
+  backdrop-filter: var(--blur-sm);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  color: rgba(255, 255, 255, 0.68);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+footer a {
+  color: rgba(61, 220, 132, 0.92);
+  text-decoration: none;
+  font-weight: var(--weight-semi);
+  transition:
+    color var(--duration-fast) var(--ease-smooth),
+    opacity var(--duration-fast) var(--ease-smooth);
+}
+
+footer a:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+footer img {
+  vertical-align: middle;
+  opacity: 0.9;
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+
 @media (max-width: 622px) {
   main {
     padding: var(--space-5) var(--space-2);
@@ -464,6 +527,12 @@ main {
   .noTaskCreateTask {
     width: 100%;
   }
+
+  footer {
+    padding: 0.9rem 1rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -524,5 +593,10 @@ main {
   .noTaskCreateTask {
     padding: 0.8rem 1rem;
     font-size: 0.85rem;
+  }
+
+  footer {
+    flex-direction: column;
+    padding: 0.85rem 0.9rem;
   }
 }
