@@ -3,7 +3,6 @@
 /* ── Page ───────────────────────────── */
 .tasksPage {
   width: 100%;
-  /* padding-top viene de base.css — header siempre visible */
   padding-right: var(--space-6);
   padding-bottom: var(--space-10);
   padding-left: var(--space-6);
@@ -15,14 +14,15 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 260px 1fr;
+  display: flex;
+  align-items: flex-start;
   gap: var(--space-6);
-  align-items: start;
 }
 
 /* ── Sidebar ────────────────────────── */
 .tasksSidebar {
+  flex: 0 0 260px;
+  width: 260px;
   padding: var(--space-5);
   border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-xl);
@@ -84,6 +84,8 @@
 
 /* ── Content ────────────────────────── */
 .tasksContent {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
@@ -159,12 +161,14 @@
 
 /* ── Stats ──────────────────────────── */
 .tasksStats {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4);
 }
 
 .tasksStat {
+  flex: 1 1 calc(25% - var(--space-4));
+  min-width: 200px;
   padding: var(--space-5);
   border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-lg);
@@ -219,6 +223,8 @@
 }
 
 .tasksToolbarFilters select {
+  flex: 1 1 calc(50% - var(--space-3));
+  min-width: 180px;
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%23D2F9E4' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.9rem center;
@@ -246,8 +252,8 @@
 }
 
 .tasksToolbarFilters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -496,8 +502,8 @@
 }
 
 .taskInlineGrid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
 }
 
@@ -660,15 +666,17 @@ textarea.taskInlineField {
 /* ── Responsive ─────────────────────── */
 @media (max-width: 1100px) {
   .tasksLayout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .tasksSidebar {
+    flex: 1 1 auto;
+    width: 100%;
     position: static;
   }
 
-  .tasksStats {
-    grid-template-columns: 1fr 1fr;
+  .tasksStat {
+    flex: 1 1 calc(50% - var(--space-4));
   }
 }
 
@@ -679,7 +687,12 @@ textarea.taskInlineField {
   }
 
   .tasksToolbarFilters {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .tasksToolbarFilters select {
+    flex: 1 1 100%;
+    min-width: 100%;
   }
 
   .taskCardBottom {
@@ -697,8 +710,9 @@ textarea.taskInlineField {
     padding: var(--space-6) var(--space-4);
   }
 
-  .tasksStats {
-    grid-template-columns: 1fr;
+  .tasksStat {
+    flex: 1 1 100%;
+    min-width: 100%;
   }
 
   .tasksPageTitle {
