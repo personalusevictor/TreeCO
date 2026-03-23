@@ -1,20 +1,11 @@
 @import url("root.css");
 
-/* ── Main ───────────────────────────── */
 main {
-  width: 100%;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding-right: var(--space-6);
-  padding-bottom: var(--space-10);
-  padding-left: var(--space-6);
   font-family: var(--font-sans);
-  position: relative;
-  z-index: var(--z-card);
 }
 
-/* ── Lista de tareas ───────────────────────────── */
 .tasks {
   width: 920px;
   max-height: 72vh;
@@ -26,9 +17,7 @@ main {
   overflow-x: hidden;
 }
 
-/* ── Task Card (misma estética que tasks.css) ───────────────────────────── */
 .task {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -60,7 +49,6 @@ main {
     0 16px 34px rgba(0, 0, 0, 0.24);
 }
 
-/* Línea lateral de estado (como tasks.css) */
 .task::before {
   content: "";
   position: absolute;
@@ -110,7 +98,6 @@ main {
     0 0 18px rgba(255, 80, 80, 0.05);
 }
 
-/* --- Parte superior (task-card__top) --- */
 .taskHeader {
   display: flex;
   justify-content: space-between;
@@ -143,7 +130,6 @@ main {
   max-width: 85%;
 }
 
-/* --- Parte inferior (taskCardBottom) --- */
 .taskFooter {
   display: flex;
   justify-content: space-between;
@@ -273,7 +259,6 @@ main {
   box-shadow: var(--shadow-glass), var(--shadow-inset);
 }
 
-/* Icono */
 .noTaskIcon {
   width: 84px;
   height: 84px;
@@ -293,7 +278,6 @@ main {
   box-shadow: 0 0 30px rgba(61, 220, 132, 0.08);
 }
 
-/* Texto superior */
 .noTaskSubtitle {
   margin: 0 0 var(--space-2);
   color: var(--color-text-accent);
@@ -303,7 +287,6 @@ main {
   text-transform: uppercase;
 }
 
-/* Título */
 .noTaskTitle {
   margin: 0 0 var(--space-4);
   color: var(--color-text-primary);
@@ -313,7 +296,6 @@ main {
   max-width: 700px;
 }
 
-/* Descripción */
 .noTaskText {
   margin: 0 0 var(--space-8);
   max-width: 640px;
@@ -322,7 +304,6 @@ main {
   line-height: 1.7;
 }
 
-/* Contenedor botones */
 .noTaskGoTasks {
   display: flex;
   align-items: center;
@@ -331,7 +312,6 @@ main {
   flex-wrap: wrap;
 }
 
-/* Botón principal */
 .noTaskGoTask {
   display: flex;
   align-items: center;
@@ -365,7 +345,6 @@ main {
   box-shadow: var(--shadow-btn-hover);
 }
 
-/* Botón secundario */
 .noTaskCreateTask {
   display: flex;
   align-items: center;
@@ -395,10 +374,6 @@ main {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ------------- RESPONSIVE --------------- */
-
-
-/* Móvil */
 @media (max-width: 622px) {
   main {
     padding: var(--space-5) var(--space-2);
