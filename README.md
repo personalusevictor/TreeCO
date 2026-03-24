@@ -1,59 +1,98 @@
-# 🚀 TreeCO – Gestor Profesional de Proyectos y Tareas
 
-**TreeCO** es una aplicación de escritorio desarrollada en **Java** que permite a los usuarios organizar su flujo de trabajo mediante la gestión de proyectos y tareas. Este proyecto ha sido desarrollado como parte del aprendizaje en el primer año de **DAW (Desarrollo de Aplicaciones Web)**, enfocándose en la aplicación de la Programación Orientada a Objetos (POO) y el diseño de interfaces modernas.
+# 🌱 TreeCO
 
----
+![Java](https://img.shields.io/badge/Java-21-blue)
+![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+![Vercel](https://img.shields.io/badge/Frontend-Vercel-black)
+![Render](https://img.shields.io/badge/Backend-Render-purple)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## 🎯 Objetivos del Proyecto
-
-El objetivo principal es demostrar solidez en los fundamentos de desarrollo de software, incluyendo:
-
-- **Arquitectura en capas:** Separación clara entre Modelo, Vista, Controlador y Servicios.
-- **Interfaz Gráfica (GUI):** Implementación con **JavaFX**.
-- **Gestión de Datos:** Persistencia de información mediante archivos (Serialización/JSON).
-- **Lógica de Negocio:** Control de estados, prioridades, fechas límite y cálculo de progreso.
+> Aplicación full-stack para gestión de tareas y productividad, desarrollada como proyecto profesional orientado a DAW / portfolio.
 
 ---
 
-## ✨ Funcionalidades Principales
+## 📌 Descripción
 
-### 👤 Gestión de Usuarios
+**TreeCO** es una aplicación web que permite organizar tareas y proyectos de forma eficiente mediante una interfaz moderna y una API robusta.
 
-- Sistema de **Login y Registro**.
-- Espacio de trabajo personalizado (cada usuario gestiona sus propios proyectos).
+El proyecto sigue una arquitectura desacoplada:
+- Backend REST con Spring Boot
+- Frontend en JavaScript puro
+- Base de datos PostgreSQL
+- Deploy en la nube
 
-### 📂 Gestión de Proyectos
+## 🚀 Features
 
-- Creación, edición y eliminación de proyectos.
-- **Cálculo automático de progreso** basado en las tareas completadas.
-- Visualización de estadísticas rápidas por proyecto.
-
-### 📝 Gestión de Tareas
-
-- Atributos detallados: Título, descripción, prioridad (Baja, Media, Alta) y estado (Pendiente, En Progreso, Completada).
-- **Control de fechas:** Fecha de creación y fecha límite.
-- **Alertas visuales:** Identificación automática de tareas vencidas.
-- Filtros avanzados por estado y prioridad.
-
----
-
-## 🛠️ Stack Tecnológico
-
-- **Lenguaje:** Java 17
-- **Interfaz Gráfica:** JavaFX
-- **Persistencia:** Gestión de archivos (File I/O)
-- **Entorno de Desarrollo:** VS Code / Cursor
-- **Arquitectura:** Modelo-Vista-Controlador (MVC)
+- 🔐 Autenticación con JWT
+- 📧 Verificación por email
+- 📋 CRUD de tareas
+- 📁 Gestión por proyectos
+- ⏱️ Cálculo de tiempo restante
+- 🎯 Filtros dinámicos
+- 🎨 UI moderna (glassmorphism)
 
 ---
 
-## 🏗️ Estructura del Proyecto
+## 🏗️ Arquitectura
 
-```text
-src/
-├── model/       # Clases de dominio (Usuario, Proyecto, Tarea, Enums)
-├── service/     # Lógica de negocio y gestión de datos
-├── controller/  # Controladores de la interfaz JavaFX
-├── view/        # Archivos FXML y estilos CSS
-└── Main.java    # Punto de entrada de la aplicación
+Frontend (Vercel) → Backend API (Render) → PostgreSQL
+
+---
+
+## ⚙️ Instalación
+
+### Backend
+
+```bash
+cd backend
+./mvnw spring-boot:run
 ```
+
+### Variables de entorno
+
+```
+DB_URL=
+DB_USER=
+DB_PASS=
+MAIL_USER=
+MAIL_PASS=
+```
+
+---
+
+## 📸 Screenshots
+
+### Calendario
+![Calendario](https://i.imgur.com/KvT8SQ4.png)
+
+### Tareas
+![Tareas](https://i.imgur.com/KPT9Skq.png)
+![Tareas](https://i.imgur.com/Pxst5Ji.png)
+
+### Proyectos
+![Proyectos](https://i.imgur.com/sRq8rmv.png)
+
+### Auth
+![Auth](https://i.imgur.com/IoOh4zO.png)
+
+---
+
+## 🛠️ Stack
+
+Backend:
+- Java 21
+- Spring Boot
+- Hibernate
+- PostgreSQL
+
+Frontend:
+- HTML
+- CSS
+- JS
+
+---
+
+## 👨‍💻 Autor
+
+Raúl – Victor
