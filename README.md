@@ -1,12 +1,16 @@
 
 # 🌱 TreeCO
 
-![Java](https://img.shields.io/badge/Java-21-blue)
-![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
-![Vercel](https://img.shields.io/badge/Frontend-Vercel-black)
-![Render](https://img.shields.io/badge/Backend-Render-purple)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+<div align="center">
+
+![status](https://img.shields.io/badge/status-active-success?style=for-the-badge)
+![backend](https://img.shields.io/badge/backend-Spring_Boot_3-6DB33F?style=for-the-badge&logo=springboot)
+![frontend](https://img.shields.io/badge/frontend-JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![database](https://img.shields.io/badge/database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)
+![deploy](https://img.shields.io/badge/deploy-Render_+_Vercel-000000?style=for-the-badge&logo=vercel)
+![license](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
+
+</div>
 
 > Aplicación full-stack para gestión de tareas y productividad, desarrollada como proyecto profesional orientado a DAW / portfolio.
 
@@ -36,7 +40,13 @@ El proyecto sigue una arquitectura desacoplada:
 
 ## 🏗️ Arquitectura
 
-Frontend (Vercel) → Backend API (Render) → PostgreSQL
+```
+Frontend (Vercel)
+   ↓
+Backend API (Spring Boot - Render)
+   ↓
+PostgreSQL
+```
 
 ---
 
