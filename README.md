@@ -1,14 +1,16 @@
 
-# 🌱 TreeCO
+# 🌱 TreeCO https://treeco.vercel.app 
 
 <div align="center">
 
-![status](https://img.shields.io/badge/status-active-success?style=for-the-badge)
-![backend](https://img.shields.io/badge/backend-Spring_Boot_3-6DB33F?style=for-the-badge&logo=springboot)
-![frontend](https://img.shields.io/badge/frontend-JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![database](https://img.shields.io/badge/database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)
-![deploy](https://img.shields.io/badge/deploy-Render_+_Vercel-000000?style=for-the-badge&logo=vercel)
-![license](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
+![HTML](https://img.shields.io/badge/HTML5-08080f?style=for-the-badge&logo=html5&logoColor=E34F26)
+![CSS](https://img.shields.io/badge/CSS3-08080f?style=for-the-badge&logo=css3&logoColor=1572B6)
+![JavaScript](https://img.shields.io/badge/JavaScript-08080f?style=for-the-badge&logo=javascript&logoColor=F7DF1E)
+![Java](https://img.shields.io/badge/Java-08080f?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring](https://img.shields.io/badge/SpringBoot-08080f?style=for-the-badge&logo=springboot&logoColor=6DB33F)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-08080f?style=for-the-badge&logo=postgresql&logoColor=4169E1)
+![Vercel](https://img.shields.io/badge/Vercel-08080f?style=for-the-badge&logo=vercel&logoColor=white)
+![Render](https://img.shields.io/badge/Render-08080f?style=for-the-badge&logo=render&logoColor=white)
 
 </div>
 
