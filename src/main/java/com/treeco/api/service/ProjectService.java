@@ -3,6 +3,7 @@ package com.treeco.api.service;
 import com.treeco.api.model.Project;
 import com.treeco.api.model.Task;
 import com.treeco.api.model.User;
+import com.treeco.api.model.enums.NotificationType;
 import com.treeco.api.model.enums.State;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.TaskRepository;
@@ -19,19 +20,22 @@ import java.util.NoSuchElementException;
 @Service
 public class ProjectService {
 
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
+    private final ProjectRepository       projectRepository;
+    private final UserRepository          userRepository;
     private final ProjectMemberRepository projectMemberRepository;
-    private final TaskRepository taskRepository;
+    private final TaskRepository          taskRepository;
+    private final NotificationService     notificationService;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
                           ProjectMemberRepository projectMemberRepository,
-                          TaskRepository taskRepository) {
-        this.projectRepository = projectRepository;
-        this.userRepository = userRepository;
+                          TaskRepository taskRepository,
+                          NotificationService notificationService) {
+        this.projectRepository       = projectRepository;
+        this.userRepository          = userRepository;
         this.projectMemberRepository = projectMemberRepository;
-        this.taskRepository = taskRepository;
+        this.taskRepository          = taskRepository;
+        this.notificationService     = notificationService;
     }
 
     // ── CONSULTAS ─────────────────────────────────────────────────────
@@ -40,21 +44,14 @@ public class ProjectService {
         return projectRepository.findAll();
     }
 
-    /**
-     * @throws NoSuchElementException si no existe
-     */
     public Project findById(Integer id) {
         return projectRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Proyecto no encontrado con id: " + id));
     }
 
-    /**
-     * @throws NoSuchElementException si el usuario no existe
-     */
     public List<Project> getProjectsByUser(Integer userId) {
-        if (!userRepository.existsById(userId)) {
+        if (!userRepository.existsById(userId))
             throw new NoSuchElementException("Usuario no encontrado con id: " + userId);
-        }
         return projectRepository.findByUserId(userId);
     }
 
@@ -62,16 +59,9 @@ public class ProjectService {
         return findById(projectId).getProgress();
     }
 
-    /**
-     * Consulta las tareas filtradas por estado directamente en la BD,
-     * en vez de cargar todo el proyecto en memoria.
-     *
-     * @throws NoSuchElementException si el proyecto no existe
-     */
     public List<Task> getTasksByState(Integer projectId, State state) {
-        if (!projectRepository.existsById(projectId)) {
+        if (!projectRepository.existsById(projectId))
             throw new NoSuchElementException("Proyecto no encontrado con id: " + projectId);
-        }
         return taskRepository.findByProjectId(projectId).stream()
                 .filter(t -> t.getState() == state)
                 .toList();
@@ -81,8 +71,7 @@ public class ProjectService {
 
     /**
      * Crea un proyecto y registra al creador como OWNER.
-     *
-     * @throws NoSuchElementException si el usuario no existe
+     * Sin notificación: el creador ya sabe que creó su propio proyecto.
      */
     @Transactional
     public Project createProject(Integer userId, String name, String description) {
@@ -93,7 +82,6 @@ public class ProjectService {
         project.setUser(user);
         projectRepository.save(project);
 
-        // Usa el constructor canónico de ProjectMember — única fuente de verdad
         ProjectMember owner = new ProjectMember(project, user, ProjectRole.OWNER);
         projectMemberRepository.save(owner);
 
@@ -101,31 +89,62 @@ public class ProjectService {
     }
 
     /**
-     * @throws NoSuchElementException   si el proyecto no existe
-     * @throws IllegalArgumentException si el nombre es nulo o vacío
+     * Actualiza un proyecto.
+     *
+     * Notificación disparada:
+     *  - PROJECT_UPDATE → todos los miembros activos (excepto quien hizo el cambio,
+     *    si se conoce; aquí notificamos a todos porque el servicio no recibe
+     *    requestingUserId — eso lo filtra el controlador si lo necesita)
      */
     @Transactional
     public Project updateProject(Integer projectId, String newName, String newDescription) {
         Project project = findById(projectId);
 
-        if (newName != null && !newName.isBlank()) {
+        if (newName != null && !newName.isBlank())
             project.setName(newName);
-        }
-        if (newDescription != null) {
+        if (newDescription != null)
             project.setDescription(newDescription);
-        }
 
-        return projectRepository.save(project);
+        projectRepository.save(project);
+
+        projectMemberRepository.findByProjectIdAndActiveTrue(projectId).forEach(member ->
+            notificationService.createForProject(
+                member.getUser().getId(),
+                NotificationType.PROJECT_UPDATE,
+                "Proyecto actualizado",
+                "El proyecto \"" + project.getName() + "\" ha sido modificado",
+                projectId.longValue(),
+                "/projects/" + projectId
+            )
+        );
+
+        return project;
     }
 
     /**
-     * @throws NoSuchElementException si el proyecto no existe
+     * Elimina un proyecto.
+     *
+     * Notificación disparada:
+     *  - PROJECT_DELETED → todos los miembros activos
+     *  (se envían ANTES del delete para poder leer los miembros)
      */
     @Transactional
     public void deleteProject(Integer projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new NoSuchElementException("Proyecto no encontrado con id: " + projectId);
-        }
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NoSuchElementException("Proyecto no encontrado con id: " + projectId));
+
+        String projectName = project.getName();
+
+        // Notificar antes de borrar (el cascade eliminaría los ProjectMember)
+        projectMemberRepository.findByProjectIdAndActiveTrue(projectId).forEach(member ->
+            notificationService.create(
+                member.getUser().getId(),
+                NotificationType.PROJECT_DELETED,
+                "Proyecto eliminado",
+                "El proyecto \"" + projectName + "\" ha sido eliminado"
+            )
+        );
+
         projectRepository.deleteById(projectId);
     }
 }

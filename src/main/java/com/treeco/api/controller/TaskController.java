@@ -4,13 +4,17 @@ import com.treeco.api.dto.user.TaskResponseDto;
 import com.treeco.api.model.CodeTask;
 import com.treeco.api.model.Project;
 import com.treeco.api.model.Task;
+import com.treeco.api.model.User;
+import com.treeco.api.model.enums.NotificationType;
 import com.treeco.api.model.enums.Priority;
 import com.treeco.api.model.enums.State;
 import com.treeco.api.model.enums.TaskType;
 import com.treeco.api.repository.CodeTaskRepository;
+import com.treeco.api.repository.ProjectMemberRepository;
 import com.treeco.api.repository.ProjectRepository;
 import com.treeco.api.repository.TaskRepository;
 import com.treeco.api.repository.UserRepository;
+import com.treeco.api.service.NotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -25,19 +29,25 @@ import java.util.NoSuchElementException;
 @RequestMapping("/projects/{projectId}/tasks")
 public class TaskController {
 
-    private final TaskRepository     taskRepository;
-    private final ProjectRepository  projectRepository;
-    private final UserRepository     userRepository;
-    private final CodeTaskRepository codeTaskRepository;
+    private final TaskRepository          taskRepository;
+    private final ProjectRepository       projectRepository;
+    private final UserRepository          userRepository;
+    private final CodeTaskRepository      codeTaskRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final NotificationService     notificationService;
 
     public TaskController(TaskRepository taskRepository,
                           ProjectRepository projectRepository,
                           UserRepository userRepository,
-                          CodeTaskRepository codeTaskRepository) {
-        this.taskRepository     = taskRepository;
-        this.projectRepository  = projectRepository;
-        this.userRepository     = userRepository;
-        this.codeTaskRepository = codeTaskRepository;
+                          CodeTaskRepository codeTaskRepository,
+                          ProjectMemberRepository projectMemberRepository,
+                          NotificationService notificationService) {
+        this.taskRepository          = taskRepository;
+        this.projectRepository       = projectRepository;
+        this.userRepository          = userRepository;
+        this.codeTaskRepository      = codeTaskRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.notificationService     = notificationService;
     }
 
     // ── Request records ───────────────────────────────────────────────
@@ -143,6 +153,21 @@ public class TaskController {
                 taskRepository.save(task);
             }
 
+            // ── NOTIFICACIÓN: tarea asignada al crearla ───────────────
+            if (task.getAssignedTo() != null) {
+                notificationService.createForTask(
+                    task.getAssignedTo().getId(),
+                    NotificationType.TASK_ASSIGNED,
+                    "Tienes una nueva tarea",
+                    "Se te ha asignado \"" + task.getTitle() + "\" en \""
+                        + project.getName() + "\"",
+                    project.getId().longValue(),
+                    task.getId().longValue(),
+                    "/projects/" + projectId + "/tasks/" + task.getId()
+                );
+            }
+            // ─────────────────────────────────────────────────────────
+
             return ResponseEntity.status(HttpStatus.CREATED).body(toDto(task));
 
         } catch (NoSuchElementException e) {
@@ -161,6 +186,11 @@ public class TaskController {
         try {
             findProjectOrThrow(projectId);
             Task task = findTaskOrThrow(taskId, projectId);
+
+            // Capturar estado ANTES de modificar
+            User    previousAssignee = task.getAssignedTo();
+            boolean wasCompleted     = task.isCompleted();
+            LocalDateTime previousDeadline = task.getDateDeadline();
 
             if (req.title()        != null) task.setTitle(req.title());
             if (req.description()  != null) task.setDescription(req.description());
@@ -190,6 +220,66 @@ public class TaskController {
                 taskRepository.save(task);
             }
 
+            // ── NOTIFICACIONES ────────────────────────────────────────
+
+            // 1. Asignada a alguien nuevo
+            if (req.assignedToId() != null && req.assignedToId() > 0
+                    && task.getAssignedTo() != null
+                    && !task.getAssignedTo().equals(previousAssignee)) {
+                notificationService.createForTask(
+                    task.getAssignedTo().getId(),
+                    NotificationType.TASK_ASSIGNED,
+                    "Tienes una nueva tarea",
+                    "Se te ha asignado \"" + task.getTitle() + "\"",
+                    (long) projectId,
+                    task.getId().longValue(),
+                    "/projects/" + projectId + "/tasks/" + task.getId()
+                );
+            }
+
+            // 2. Desasignada (assignedToId == -1 y había alguien antes)
+            if (req.assignedToId() != null && req.assignedToId() == -1
+                    && previousAssignee != null) {
+                notificationService.create(
+                    previousAssignee.getId(),
+                    NotificationType.PROJECT_UPDATE,
+                    "Te han desasignado de una tarea",
+                    "Ya no estás asignado a \"" + task.getTitle() + "\""
+                );
+            }
+
+            // 3. Recién completada → notificar al OWNER del proyecto
+            if (req.completed() != null && req.completed() && !wasCompleted) {
+                projectMemberRepository.findOwnerByProjectId(projectId).ifPresent(owner ->
+                    notificationService.createForTask(
+                        owner.getUser().getId(),
+                        NotificationType.TASK_COMPLETED,
+                        "Tarea completada",
+                        "\"" + task.getTitle() + "\" ha sido marcada como completada",
+                        (long) projectId,
+                        task.getId().longValue(),
+                        "/projects/" + projectId + "/tasks/" + task.getId()
+                    )
+                );
+            }
+
+            // 4. Fecha límite cambiada → notificar al asignado
+            if (req.dateDeadline() != null
+                    && !req.dateDeadline().equals(previousDeadline)
+                    && task.getAssignedTo() != null) {
+                notificationService.createForTask(
+                    task.getAssignedTo().getId(),
+                    NotificationType.DEADLINE_CHANGED,
+                    "Fecha límite actualizada",
+                    "La fecha límite de \"" + task.getTitle() + "\" ha cambiado",
+                    (long) projectId,
+                    task.getId().longValue(),
+                    "/projects/" + projectId + "/tasks/" + task.getId()
+                );
+            }
+
+            // ─────────────────────────────────────────────────────────
+
             return ResponseEntity.ok(toDto(task));
 
         } catch (NoSuchElementException e) {
@@ -215,10 +305,6 @@ public class TaskController {
 
     // ── DTO mapper ────────────────────────────────────────────────────
 
-    /**
-     * Convierte Task a TaskResponseDto eliminando todas las referencias circulares.
-     * Task → Project (ignorado), Task → CodeTask → Task (cortado con DTO plano).
-     */
     private TaskResponseDto toDto(Task task) {
         TaskResponseDto dto = new TaskResponseDto();
         dto.setId(task.getId());
